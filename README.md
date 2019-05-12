@@ -1,5 +1,5 @@
-##  Project: Readmission or death after first HF discharge   
-### Principal Investigator: Micahel Giakoumis
+##  Project: Readmission or Death After First HF Discharge   
+### Principal Investigator: Michail Giakoumis
 ### Coordinator: Nora Cosgrove
 ### Statistician: Davit Sargsyan
 ### Study ID: [??]
@@ -14,10 +14,16 @@
 [References](#ref)   
 
 ## Daily Log<a name="log"></a>
-* Repository created
+### 05/01/2019
+* Repository created.
+
+### 05/11/2019
+* Data set created.
 
 ## Workflow<a name="workflow"></a>
 
 ## File Legend<a name="legend"></a>
+***midas15_hf_data_v1.R***: make analysis data set.    
+
 
 ## References<a name="ref"></a>

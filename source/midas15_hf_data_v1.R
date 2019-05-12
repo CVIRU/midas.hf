@@ -1,16 +1,13 @@
 # |----------------------------------------------------------------------------------|
-# | Project: Heart Failures after MIs in MIDAS                                       |
+# | Project: Readmission or Death After First HF Discharge                           |
 # | Script: Make the data set for the analysis                                       |
-# | Authors: Jen Wellings; Davit Sargsyan                                            |   
-# | Created: 04/21/2017                                                              |
-# | Modified: 07/08/2017, using new MIDAS15 with Patient Type variable               |
-# |           07/29/2017, keep inpatient records only;redefine lipoid disorder, etc. |
-# |           02/28/2018, add PCI and CABG (revascularization)                       |
-# |           03/02/2018, add AMI type - subcardial vs. other                        |
+# | Authors: Michail Giakoumis; Davit Sargsyan                                       |   
+# | Created: 04/05/2019                                                              |
+# | Modified:                                                                        |
 # |----------------------------------------------------------------------------------|
 # Header----
 # Save consol output to a log file
-# sink(file = "tmp/log_midas15_mi2hf_data_v4.txt")
+sink(file = "tmp/log_midas15_hf_data_v1.txt")
 date()
 
 # Header----
@@ -114,6 +111,8 @@ cancer <- rowSums(apply(X = dx.1.3,
 table(cancer)
 # FALSE     TRUE 
 # 15462575  1808722 
+length(unique(midas15$Patient_ID[cancer]))
+# 946,835 patients
 
 # HIV----
 hiv <- rowSums(apply(X = dx,
@@ -124,6 +123,44 @@ hiv <- rowSums(apply(X = dx,
 table(hiv)
 # FALSE     TRUE 
 # 17198453    72844
+length(unique(midas15$Patient_ID[hiv]))
+# 23,718 patients
+
+tmp <- data.table(midas15[, c("Patient_ID", 
+                              "RACE",
+                              "SEX", 
+                              "HISPAN")],
+                  hiv = hiv)
+tmp <- tmp[hiv, ]
+tmp[, N := 1:.N,
+    by = Patient_ID]
+tmp <- tmp[N == 1, ]
+tmp <- data.table(table(hiv = tmp$hiv,
+                        race = tmp$RACE,
+                        sex = tmp$SEX,
+                        hisp = tmp$HISPAN))[, -1]
+tmp$pct <- round(100*tmp$N/sum(tmp$N), 1)
+kable(tmp)
+  # |race  |sex |hisp         |    N|  pct|
+  # |:-----|:---|:------------|----:|----:|
+  # |White |F   |Hispanic     |  715|  3.0|
+  # |Black |F   |Hispanic     |  142|  0.6|
+  # |Other |F   |Hispanic     |  353|  1.5|
+  # |White |M   |Hispanic     | 1386|  5.8|
+  # |Black |M   |Hispanic     |  235|  1.0|
+  # |Other |M   |Hispanic     |  727|  3.1|
+  # |White |F   |Non-Hispanic | 1301|  5.5|
+  # |Black |F   |Non-Hispanic | 5319| 22.4|
+  # |Other |F   |Non-Hispanic |  287|  1.2|
+  # |White |M   |Non-Hispanic | 3209| 13.5|
+  # |Black |M   |Non-Hispanic | 7479| 31.5|
+  # |Other |M   |Non-Hispanic |  555|  2.3|
+  # |White |F   |Unknown      |  137|  0.6|
+  # |Black |F   |Unknown      |  417|  1.8|
+  # |Other |F   |Unknown      |  107|  0.5|
+  # |White |M   |Unknown      |  429|  1.8|
+  # |Black |M   |Unknown      |  664|  2.8|
+  # |Other |M   |Unknown      |  256|  1.1|
 
 id.rm <- unique(midas15$Patient_ID[cancer | hiv])
 rec.keep <- which(!(midas15$Patient_ID %in% id.rm))
@@ -164,7 +201,6 @@ kable(l1[comorb == "hf",
   # |42842 |Chronic combined systolic and diastolic heart failure          |
   # |42843 |Acute on chronic combined systolic and diastolic heart failure |
   # |4289  |Heart failure, unspecified                                     |
-
 
 l2 <- as.comorbidity_map(split(x = l1$code,
                                f = l1$comorb))
@@ -216,11 +252,20 @@ setkey(dt1,
 dt1
 dt1$Record_ID <- 1:nrow(dt1)
 
-# Remove everything except dt1----
+# Save datasets----
+attr(dt1, "created") <- date()
+attr(dt1, c("description")) <- "Source: 'midas15_hf_data_v1.R'."
+attributes(dt1)
 save(dt1,
      file = "data/dt1.RData")
+
+attr(l2, "created") <- date()
+attr(l2, c("description")) <- "Source: 'midas15_hf_data_v1.R'."
+attributes(l2)
 save(l2,
      file = "data/l2.RData")
+
+# Clear memory
 rm(list = setdiff(ls(), 
                   c("dt1",
                     "l2")))
@@ -272,6 +317,7 @@ kable(format(data.frame(N_Records = colSums(dt2)),
   # |hyper  |1,385,752 |
   # |lipid  |392,947   |
   # |osa    |30,907    |
+  # |park   |22,822    |
   # |stroke |35,718    |
   # |tia    |33,176    |
 
@@ -323,6 +369,10 @@ dt2[, current := (DSCHDAT == first)]
 
 # Summary
 summary(dt2)
+attr(dt2, "created") <- date()
+attr(dt2, c("description")) <- "Source: 'midas15_hf_data_v1.R'."
+attributes(dt2)
+
 save(dt2, 
      file = "data/dt2.RData")
 
@@ -331,34 +381,32 @@ rm(list = setdiff(ls(),
                   "dt2"))
 gc()
 
-
-# CONTINUE HERE!!! 05/10/2019----
-
-
 # Part III----
 # load("data/dt2.RData"))
+dt2
 
 # Outcomes and histories (prior to 1st HF discharge)----
 system.time(
-  hh <- dt1[, list(ADMDAT,
-                   DSCHDAT,
+  hh <- dt2[, list(Record_ID,
+                   Patient_ID,
                    patbdte,
                    NEWDTD,
                    CAUSE,
-                   HOSP,
+                   AGE,
                    SEX,
-                   PRIME,
                    RACE,
                    HISPAN,
-                   AGE,
-                   dschyear = as.numeric(substr(DSCHDAT, 1, 4)),
+                   ADMDAT,
+                   DSCHDAT,
+                   HOSP,
+                   PRIME,
+                   YEAR,
+                   DSCYR,
                    first,
                    prior,
                    current,
-                   ami.dx1,
-                   ami,
-                   sub.ami.dx1,
-                   sub.ami,
+                   hf.dx1,
+                   hf,
                    readm = sum(!(prior | current) &
                                  (difftime(ADMDAT,
                                            first,
@@ -375,60 +423,24 @@ system.time(
                                                                        units = "days")) > 0)],
                                    na.rm = TRUE),
                    days2readm = -1,
-                   post.chf.acute.dx1 = sum(chf.acute.dx1 & 
+                   post.hf.dx1 = sum(hf.dx1 & 
+                                       !(prior | current) &
+                                       (difftime(ADMDAT,
+                                                 first,
+                                                 units = "days") >= 0) &
+                                       (is.na(NEWDTD) | (difftime(NEWDTD,
+                                                                  DSCHDAT,
+                                                                  units = "days")) > 0)) > 0,
+                   post.hf.dat = min(ADMDAT[hf.dx1 & 
                                               !(prior | current) &
                                               (difftime(ADMDAT,
                                                         first,
                                                         units = "days") >= 0) &
                                               (is.na(NEWDTD) | (difftime(NEWDTD,
                                                                          DSCHDAT,
-                                                                         units = "days")) > 0)) > 0,
-                   post.chf.acute.dx1.dat = min(ADMDAT[chf.acute.dx1 & 
-                                                         !(prior | current) &
-                                                         (difftime(ADMDAT,
-                                                                   first,
-                                                                   units = "days") >= 0) &
-                                                         (is.na(NEWDTD) | (difftime(NEWDTD,
-                                                                                    DSCHDAT,
-                                                                                    units = "days")) > 0)],
-                                                na.rm = TRUE),
-                   days2post.chf.acute.dx1 = -1,
-                   post.pci = sum(pci & 
-                                    !(prior | current) &
-                                    (difftime(ADMDAT,
-                                              first,
-                                              units = "days") >= 0) &
-                                    (is.na(NEWDTD) | (difftime(NEWDTD,
-                                                               DSCHDAT,
-                                                               units = "days")) > 0)) > 0,
-                   post.pci.dat = min(ADMDAT[pci & 
-                                               !(prior | current) &
-                                               (difftime(ADMDAT,
-                                                         first,
-                                                         units = "days") >= 0) &
-                                               (is.na(NEWDTD) | (difftime(NEWDTD,
-                                                                          DSCHDAT,
-                                                                          units = "days")) > 0)],
-                                      na.rm = TRUE),
-                   days2post.pci = -1,
-                   post.cabg = sum(cabg & 
-                                     !(prior | current) &
-                                     (difftime(ADMDAT,
-                                               first,
-                                               units = "days") >= 0) &
-                                     (is.na(NEWDTD) | (difftime(NEWDTD,
-                                                                DSCHDAT,
-                                                                units = "days")) > 0)) > 0,
-                   post.cabg.dat = min(ADMDAT[cabg & 
-                                                !(prior | current) &
-                                                (difftime(ADMDAT,
-                                                          first,
-                                                          units = "days") >= 0) &
-                                                (is.na(NEWDTD) | (difftime(NEWDTD,
-                                                                           DSCHDAT,
-                                                                           units = "days")) > 0)],
-                                       na.rm = TRUE),
-                   days2post.cabg = -1,
+                                                                         units = "days")) > 0)],
+                                     na.rm = TRUE),
+                   days2post.hf.dx1 = -1,
                    dead = sum(!(prior | current) &
                                 (difftime(NEWDTD,
                                           first,
@@ -437,44 +449,44 @@ system.time(
                    days2death = -1,
                    cvdeath = FALSE,
                    days2cvdeath = -1,
+                   haf = (sum(af & prior) > 0),
                    hami = (sum(ami & prior) > 0),
-                   hchf.acute = (sum(chf.acute & prior) > 0),
-                   chf.acute.current = (sum(chf.acute & current) > 0),
-                   hchf.chron = (sum(chf.chron & (prior | current)) > 0),
-                   hhyp = (sum(hyp & (prior | current)) > 0), 
-                   hdiab = (sum(diab & (prior | current)) > 0), 
-                   hcld = (sum(cld & (prior | current)) > 0),
-                   hckd = (sum(ckd & (prior | current)) > 0),
-                   hcopd = (sum(copd & (prior | current)) > 0),
-                   hlipid = (sum(lipid & (prior | current)) > 0),
-                   hpci = (sum(pci & prior) > 0),
-                   hcabg = (sum(cabg & prior) > 0)), 
+                   hanemia = (sum(anemia & prior) > 0),
+                   hckd = (sum(ckd & prior) > 0),
+                   hcopd = (sum(copd & prior) > 0),
+                   hdiab = (sum(diab & prior) > 0),
+                   hhf = (sum(hf & prior) > 0),
+                   hhyper = (sum(hyper & prior) > 0),
+                   hlipid = (sum(lipid & prior) > 0),
+                   hosa = (sum(osa & prior) > 0),
+                   hpark = (sum(park & prior) > 0),
+                   hstroke = (sum(stroke & prior) > 0),
+                   htia = (sum(tia & prior) > 0)),
             by = Patient_ID]
 )
 summary(hh)
-max(hh$post.chf.acute.dx1.dat[is.finite(hh$post.chf.acute.dx1.dat)])
 gc()
 
-# Separate first MI admission
-# Remove all cases with no MI records
-case <- unique(subset(hh, current & ami.dx1))
+# Separate first HF admissions
+# Remove all cases with no HF records
+case <- unique(subset(hh, current & hf.dx1))
 
 # If the are are more than 1 records of 1st MI admissions per person,
 nrow(case) - length(unique(case$Patient_ID))
-# Remove 366 patient with duplicate records
+# Remove 231 patient with duplicate records
 case <- case[!(Patient_ID %in% Patient_ID[duplicated(Patient_ID)]), ]
 summary(case)
 
-# Remove patients that died at 1st MI discharge
+# Remove patients that died at 1st HF discharge
 case <- droplevels(subset(case, (is.na(NEWDTD) | NEWDTD != first)))
 
-# Remove anyone with history of MI
-case <- droplevels(subset(case, !hami))
+# Remove anyone with history of HF
+case <- droplevels(subset(case, !hhf))
 
 summary(case)
-case[, ami.dx1 := NULL] # All patients have it
-case[, ami := NULL] # All patients have it
-case[, hami := NULL] # No patient has it
+case[, hf.dx1 := NULL] # All patients have it
+case[, hf := NULL] # All patients have it
+case[, hhf := NULL] # No patient has it
 case[, prior := NULL] # False for all patients
 case[, current := NULL] # True for all patients
 gc()
@@ -488,13 +500,13 @@ case$days2readm[is.infinite(case$days2readm)] <- NA
 summary(case$days2readm)
 hist(case$days2readm, 100)
 
-# b. Days to readmission for acute CHF----
-case$days2post.chf.acute.dx1 <- as.numeric(as.character(difftime(case$post.chf.acute.dx1.dat,
+# b. Days to readmission for HF----
+case$days2post.hf.dx1 <- as.numeric(as.character(difftime(case$post.hf.dat,
                                                                  case$first,
                                                                  units = "days")))
-case$days2post.chf.acute.dx1[is.infinite(case$days2post.chf.acute.dx1)] <- NA
-summary(case$days2post.chf.acute.dx1)
-hist(case$days2post.chf.acute.dx1, 100)
+case$days2post.hf.dx1[is.infinite(case$days2post.hf.dx1)] <- NA
+summary(case$days2post.hf.dx1)
+hist(case$days2post.hf.dx1, 100)
 
 # c. Days to all-cause death----
 case$days2death <- as.numeric(as.character(difftime(case$NEWDTD,
@@ -504,7 +516,7 @@ case$days2death[is.infinite(case$days2death)] <- NA
 summary(case$days2death)
 hist(case$days2death, 100)
 
-# c. Days to cardiovascular death----
+# d. Days to cardiovascular death----
 # Source: http://www.health.state.ok.us/stats/Vital_Statistics/Death/039_causes.shtml
 # |-------------------------------------------------------------------|
 # | Major cardiovascular diseases        | I00-I78                    |
@@ -526,42 +538,33 @@ kable(addmargins(table(all_cause_death = case$dead,
                        cv_death = case$cvdeath)))
 # Row: all-cause death
 # Column: cv death
-# |      |  FALSE|  TRUE|    Sum|
-# |:-----|------:|-----:|------:|
-# |FALSE | 116536|     0| 116536|
-# |TRUE  |  17318| 23852|  41170|
-# |Sum   | 133854| 23852| 157706|
+  # |      |  FALSE|  TRUE|    Sum|
+  # |:-----|------:|-----:|------:|
+  # |FALSE |  73243|     0|  73243|
+  # |TRUE  |  38816| 37368|  76184|
+  # |Sum   | 112059| 37368| 149427|
 
 case$days2cvdeath <- case$days2death
 case$days2cvdeath[!case$cvdeath] <- NA
 summary(case$days2cvdeath)
 hist(case$days2cvdeath, 100)
 
-# d. Days to PCI anfter AMI----
-case$days2post.pci <- as.numeric(as.character(difftime(case$post.pci.dat,
-                                                       case$first,
-                                                       units = "days")))
-case$days2post.pci[is.infinite(case$days2post.pci)] <- NA
-summary(case$days2post.pci)
-hist(case$days2post.pci, 100)
-
-# d. Days to PCI anfter AMI----
-case$days2post.cabg <- as.numeric(as.character(difftime(case$post.cabg.dat,
-                                                        case$first,
-                                                        units = "days")))
-case$days2post.cabg[is.infinite(case$days2post.cabg)] <- NA
-summary(case$days2post.cabg)
-hist(case$days2post.cabg, 100)
-
 # Summary of the subset----
 summary(case)
 case
+gc()
 
 # Save----
+attr(case, "created") <- date()
+attr(case, c("description")) <- "Source: 'midas15_hf_data_v1.R'."
+attributes(case)
+
 save(case, 
-     file = file.path(DATA_HOME, "case_02282018.RData"),
+     file = file.path("data/case.RData"),
      compress = FALSE)
 
 # Clean memory----
 gc()
-# sink()
+
+sessionInfo()
+sink()
