@@ -18,7 +18,7 @@
 * Repository created.
 
 ### 05/11/2019
-* Data set created.
+* Analysis data set created.
 
 ## Workflow<a name="workflow"></a>
 
