@@ -20,10 +20,13 @@
 ### 05/11/2019
 * Analysis data set created.
 
+### 05/13/2019
+* All GLM models ran
+
 ## Workflow<a name="workflow"></a>
 
 ## File Legend<a name="legend"></a>
-***midas15_hf_data_v1.R***: make analysis data set.    
-
+***source/midas15_hf_data_v1.R***: make analysis data set.    
+***midas15_hf_analysis_v1.Rmd***: analysis script
 
 ## References<a name="ref"></a>
