@@ -14,6 +14,9 @@
 [References](#ref)   
 
 ## Daily Log<a name="log"></a>
+### 05/17/2019
+* Added reason for readmission and the length of stay.
+
 ### 05/01/2019
 * Repository created.
 

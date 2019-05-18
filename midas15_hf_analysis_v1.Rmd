@@ -1,19 +1,20 @@
 ---
 title: "Readmission or Death After First HF Discharge"
 author: "Michail Giakoumis; Davit Sargsyan "
-date: "05/11/2019"
+date: "05/17/2019"
 output:
   html_notebook:
     highlight: tango
     number_sections: no
     theme: united
-    toc: yes
+    toc: TRUE
+    toc_float: TRUE
     df_print: paged
 ---
 
 # Header
 
-```{r Header, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+```{r Header}
 # |----------------------------------------------------------------------------------|
 # | Project: Heart Failure Readmissions                                              |
 # | Study ID: ?                                                                      |
@@ -22,18 +23,18 @@ output:
 # | Coordinator: Michail Giakoumis                                                   |
 # | Statistician: Davit Sargsyan                                                     |   
 # | Created:  05/11/2019                                                             |
-# | Modified: 07/08/2017, kept inpatients only                                       |
 # |----------------------------------------------------------------------------------|
-# Header----
 # Load packages
 require(data.table)
 require(DT)
 require(ggplot2)
 require(knitr)
+require(icd)
+require(icd.data)
 ```
 
-# PART I: Data
-```{r Data, echo=TRUE, message=FALSE, warning=FALSE, error=FALSE, include=TRUE}
+# Part I: Data
+```{r Data}
 load("data/case.RData")
 
 # Number of patients
@@ -53,7 +54,7 @@ DT::datatable(t1,
                              pageLength = nrow(t1)))
 ```
 
-```{r plotHF, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE, fig.height=5, fig.width=7}
+```{r plotHF, fig.height=5, fig.width=7}
 # Plot HF discharges----
 p0 <- ggplot(t1,
              aes(x = Year,
@@ -81,7 +82,7 @@ p0
 
 NOTE: the higher number in early years could be due to no information on prior HF, hence more patients remained. Also, we needed at least one year follow-up for all patients. Hence, we restricted records to 2000-2014 interval.
 
-```{r demog, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+```{r demog}
 case <- case[YEAR > 1999 & case$DSCYR < 2015, ]
 
 # Pubication/Table1: Demographics----
@@ -114,7 +115,7 @@ table1 <- t(data.table(`Mean Age at First AMI Admission +/- S.D.` = paste(round(
                                             1),
                        `  Medicaid/Self-Pay/Other` = round(100*sum(case$PRIME == "medicaid/self-pay/other")/nrow(case), 
                                                            1),
-                       `Number of AMI Patients` = nrow(case)))
+                       `Number of HF Patients` = nrow(case)))
 colnames(table1) <- "Summary"
 
 # Save Table1 as CSV
@@ -122,14 +123,14 @@ write.csv(table1,
           file = "tmp/table1.csv")
 
 DT::datatable(table1,
-              caption = "AMI Patients Demographics",
+              caption = "HF Patients' Demographics",
               rownames = TRUE,
               options = list(searching = TRUE,
                              pageLength = nrow(table1)))
 ```
 
-# PART II: Rates
-```{r Rates, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE, fig.height=7, fig.width=8}
+# Part II: Rates
+```{r Rates, fig.height=7, fig.width=8}
 invisible({
   # Table 1a Appendix: all-cause readmissions----
   # 30 days----
@@ -435,17 +436,57 @@ p1 <- ggplot(data = out,
 # Print Figure1
 p1
 ```
-## Top Causes for Readmission
+
+## Causes for Readmission
 ```{r readmCauses}
-# load("data/icd9cm_pcs_billable.RData")
-# dt.icd <- icd9cm_pcs_billable$`32`
 source("source/icd9_dx_get_data_v1.R")
 dt.icd <- icd9cm_merge_version_dx(32)
 
-# NOTE: rerun data script and add DX1 for readmissions!!!
+map <- unique(data.table(readm.dx1 = dt.icd$code,
+              major = dt.icd$major))
+
+tmp <- case[readm == TRUE, 
+            c("Patient_ID",
+              "readm.dx1",
+              "days2readm")]
+tmp <- merge(map,
+             tmp,
+             by = "readm.dx1")
+
+tmp30 <- tmp[days2readm < 31, ]
+t30 <- data.table(table(tmp30$major))
+t30$Percent <- round(100*t30$N/sum(t30$N), 1)
+t30 <- t30[order(t30$N,
+                 decreasing = TRUE),]
+DT::datatable(t30,
+              caption = "30-Day Readmissions by Cause (DX1)")
+
+tmp90<- tmp[days2readm < 91, ]
+t90 <- data.table(table(tmp90$major))
+t90$Percent <- round(100*t90$N/sum(t90$N), 1)
+t90 <- t90[order(t90$N,
+                 decreasing = TRUE),]
+DT::datatable(t90,
+              caption = "90-Day Readmissions by Cause (DX1)")
+
+tmp180 <- tmp[days2readm < 181, ]
+t180 <- data.table(table(tmp180$major))
+t180$Percent <- round(100*t180$N/sum(t180$N), 1)
+t180 <- t180[order(t180$N,
+                 decreasing = TRUE),]
+DT::datatable(t180,
+              caption = "180-Day Readmissions by Cause (DX1)")
+
+tmp1y <- tmp[days2readm < 366, ]
+t1y <- data.table(table(tmp1y$major))
+t1y$Percent <- round(100*t1y$N/sum(t1y$N), 1)
+t1y <- t1y[order(t1y$N,
+                 decreasing = TRUE),]
+DT::datatable(t1y,
+              caption = "1-Year Readmissions by Cause (DX1)")
 ```
 
-# PART III: Logistic Regression Models
+# Part III: Logistic Regression Models
 ```{r glmLabels}
 t2.names <- c("Discharge year",
                  "Age (per 10 Years)",
@@ -454,6 +495,7 @@ t2.names <- c("Discharge year",
                  "Unknown vs. Hispanic",
                  "Commercial Insurance vs. Medicare",
                  "Medicaid/Self-Pay/Other vs. Medicare",
+                 "Length of Stay",
                  "AFib/AFlutter",
                  "AMI",
                  "Anemia",
@@ -467,11 +509,17 @@ t2.names <- c("Discharge year",
                  "Stroke",
                  "TIA")
 
+# Discharge year as numeric
 case$DSCYR <- as.numeric(case$DSCYR)
+
+# Length of stay
+case$los <- difftime(case$DSCHDAT,
+                     case$ADMDAT,
+                     units = "days")
 ```
 
 ## All-Cause Readmissions
-```{r glmAllReadm, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE, fig.height=5, fig.width=9}
+```{r glmAllReadm, fig.height=5, fig.width=10}
 # Publication/Table 2a: All-cause readmissions----
 case$readm30 <- case$readm90 <- case$readm180 <- case$readm1y <- FALSE
 case$readm30[case$days2readm < 31] <- TRUE
@@ -484,6 +532,7 @@ m2a.30 <- glm(readm30 ~ DSCYR +
                 SEX +
                 HISPAN +
                 PRIME +
+                los +
                 haf +
                 hami +
                 hanemia  +
@@ -504,6 +553,7 @@ m2a.90 <- glm(readm90 ~ DSCYR +
                 SEX +
                 HISPAN +
                 PRIME +
+                los +
                 haf +
                 hami +
                 hanemia  +
@@ -524,6 +574,7 @@ m2a.180 <- glm(readm180 ~ DSCYR +
                 SEX +
                 HISPAN +
                 PRIME +
+                los +
                 haf +
                 hami +
                 hanemia  +
@@ -544,6 +595,7 @@ m2a.1y <- glm(readm1y ~ DSCYR +
                 SEX +
                 HISPAN +
                 PRIME +
+                los +
                 haf +
                 hami +
                 hanemia  +
@@ -669,7 +721,7 @@ p2a
 ```
 
 ## HF Cause Readmissions
-```{r glmHFReadm, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE, fig.height=5, fig.width=9}
+```{r glmHFReadm, fig.height=5, fig.width=10}
 # Publication/Table 2a: All-cause readmissions----
 case$hf30 <- case$hf90 <- case$hf180 <- case$hf1y <- FALSE
 case$hf30[case$days2post.hf.dx1 < 31] <- TRUE
@@ -682,6 +734,7 @@ m2b.30 <- glm(hf30 ~ DSCYR +
                 SEX +
                 HISPAN +
                 PRIME +
+                los +
                 haf +
                 hami +
                 hanemia  +
@@ -702,6 +755,7 @@ m2b.90 <- glm(hf90 ~ DSCYR +
                 SEX +
                 HISPAN +
                 PRIME +
+                los +
                 haf +
                 hami +
                 hanemia  +
@@ -722,6 +776,7 @@ m2b.180 <- glm(hf180 ~ DSCYR +
                 SEX +
                 HISPAN +
                 PRIME +
+                los +
                 haf +
                 hami +
                 hanemia  +
@@ -742,6 +797,7 @@ m2b.1y <- glm(hf1y ~ DSCYR +
                 SEX +
                 HISPAN +
                 PRIME +
+                los +
                 haf +
                 hami +
                 hanemia  +
@@ -867,7 +923,7 @@ p2b
 ```
 
 ## All-Cause Death
-```{r glmAllCauseDeath, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE, fig.height=5, fig.width=9}
+```{r glmAllCauseDeath, fig.height=5, fig.width=10}
 # Publication/Table 2c: All-cause death----
 case$dead30 <- case$dead90 <- case$dead180 <- case$dead1y <- FALSE
 case$dead30[case$days2death < 31] <- TRUE
@@ -880,6 +936,7 @@ m2c.30 <- glm(dead30 ~ DSCYR +
                 SEX +
                 HISPAN +
                 PRIME +
+                los +
                 haf +
                 hami +
                 hanemia  +
@@ -900,6 +957,7 @@ m2c.90 <- glm(dead90 ~ DSCYR +
                 SEX +
                 HISPAN +
                 PRIME +
+                los +
                 haf +
                 hami +
                 hanemia  +
@@ -920,6 +978,7 @@ m2c.180 <- glm(dead180 ~ DSCYR +
                 SEX +
                 HISPAN +
                 PRIME +
+                los +
                 haf +
                 hami +
                 hanemia  +
@@ -940,6 +999,7 @@ m2c.1y <- glm(dead1y ~ DSCYR +
                 SEX +
                 HISPAN +
                 PRIME +
+                los +
                 haf +
                 hami +
                 hanemia  +
@@ -1065,7 +1125,7 @@ p2c
 ```
 
 ## CV Death
-```{r glmCVdeath, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE, fig.height=5, fig.width=9}
+```{r glmCVdeath, fig.height=5, fig.width=10}
 # Publication/Table 2d: All-cause readmissions----
 case$cvdeath30 <- case$cvdeath90 <- case$cvdeath180 <- case$cvdeath1y <- FALSE
 case$cvdeath30[case$days2cvdeath < 31] <- TRUE
@@ -1078,6 +1138,7 @@ m2d.30 <- glm(cvdeath30 ~ DSCYR +
                 SEX +
                 HISPAN +
                 PRIME +
+                los +
                 haf +
                 hami +
                 hanemia  +
@@ -1098,6 +1159,7 @@ m2d.90 <- glm(cvdeath90 ~ DSCYR +
                 SEX +
                 HISPAN +
                 PRIME +
+                los +
                 haf +
                 hami +
                 hanemia  +
@@ -1118,6 +1180,7 @@ m2d.180 <- glm(cvdeath180 ~ DSCYR +
                 SEX +
                 HISPAN +
                 PRIME +
+                los +
                 haf +
                 hami +
                 hanemia  +
@@ -1138,6 +1201,7 @@ m2d.1y <- glm(cvdeath1y ~ DSCYR +
                 SEX +
                 HISPAN +
                 PRIME +
+                los +
                 haf +
                 hami +
                 hanemia  +
@@ -1261,3 +1325,10 @@ p2d <- ggplot(t2d,
 
 p2d
 ```
+
+# Appendix
+## Session Info
+```{r}
+sessionInfo()
+```
+

@@ -5,7 +5,7 @@
 # | Created: 05/24/2018                                                              |
 # |----------------------------------------------------------------------------------|
 options(stringsAsFactors = FALSE)
-require(icd.data)
+# require(icd.data)
 
 # Issues----
 # Issue2 (05/24/2018, DS): overlapping sub-chapters:----

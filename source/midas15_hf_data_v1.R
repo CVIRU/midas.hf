@@ -338,7 +338,8 @@ dt2 <- merge(dt1[, c("Record_ID",
                      "HOSP",
                      "PRIME",
                      "YEAR",
-                     "DSCYR")],
+                     "DSCYR",
+                     "DX1")],
              dt2,
              by = "Record_ID")
 
@@ -382,7 +383,7 @@ rm(list = setdiff(ls(),
 gc()
 
 # Part III----
-# load("data/dt2.RData"))
+# load("data/dt2.RData")
 dt2
 
 # Outcomes and histories (prior to 1st HF discharge)----
@@ -402,6 +403,7 @@ system.time(
                    PRIME,
                    YEAR,
                    DSCYR,
+                   DX1,
                    first,
                    prior,
                    current,
@@ -423,6 +425,7 @@ system.time(
                                                                        units = "days")) > 0)],
                                    na.rm = TRUE),
                    days2readm = -1,
+                   readm.dx1 = "",
                    post.hf.dx1 = sum(hf.dx1 & 
                                        !(prior | current) &
                                        (difftime(ADMDAT,
@@ -464,6 +467,14 @@ system.time(
                    htia = (sum(tia & prior) > 0)),
             by = Patient_ID]
 )
+# 05/17/2019
+# user  system elapsed 
+# 231.19    0.25  233.61 
+
+# Reason for readmission----
+hh[, readm.dx1 := DX1[ADMDAT == readm.dat][1],
+   by = Patient_ID]
+
 summary(hh)
 gc()
 
