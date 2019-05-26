@@ -1,7 +1,5 @@
 ---
 title: "Readmission or Death After First HF Discharge"
-author: "Michail Giakoumis; Davit Sargsyan "
-date: "05/17/2019"
 output:
   html_notebook:
     highlight: tango
@@ -10,20 +8,16 @@ output:
     toc: TRUE
     toc_float: TRUE
     df_print: paged
+    code_folding: hide
 ---
 
-# Header
+Principal Investigator: John Kostis     
+Co-Investigator: Michail Giakoumis, Georgia Barbayannis    
+Statistician: Davit Sargsyan     
+Date: `r date()`
 
-```{r Header}
-# |----------------------------------------------------------------------------------|
-# | Project: Heart Failure Readmissions                                              |
-# | Study ID: ?                                                                      |
-# | Script: Data analysis                                                            |
-# | Principal Investigator: John B. Kostis                                           |
-# | Coordinator: Michail Giakoumis                                                   |
-# | Statistician: Davit Sargsyan                                                     |   
-# | Created:  05/11/2019                                                             |
-# |----------------------------------------------------------------------------------|
+# Header
+```{r Header,echo=FALSE,message=FALSE,error=FALSE,warning=FALSE}
 # Load packages
 require(data.table)
 require(DT)
@@ -34,27 +28,77 @@ require(icd.data)
 ```
 
 # Part I: Data
-```{r Data}
+```{r data}
 load("data/case.RData")
 
-# Number of patients
-nrow(case)
+# ATTN! FIX THIS!
+case <- case[, -1]
 
 # Make age per 10 year
 case$decade <- floor(case$AGE/10)
 
+# Load hospital characteristics and merge
+# Source: Georgia's Dakota project
+dthosp <- fread("data/NJ HOSPITALS_Heart Attack Scores 2017.csv")
+dthosp <- unique(dthosp[, c("Hospital Number",
+                            "CLAB",
+                            "Area",
+                            "Teach")])
+colnames(dthosp)[1] <- "HOSP"
+
+# Remove hospitals with missing/ambiguous information
+dthosp <- dthosp[-c(16, 45, 62, 73), ]
+
+case$HOSP <- as.numeric(as.character(case$HOSP))
+case <- merge(case,
+              dthosp,
+              by = "HOSP",
+              all.x = TRUE)
+
+case$CLAB[is.na(case$CLAB)] <- -1
+case$CLAB <- factor(case$CLAB,
+                    levels = rev((-1):1),
+                    labels = c("Cath Lab",
+                               "No Cath Lab",
+                               "Unknown"))
+
+case$Area[is.na(case$Area)] <- -1
+case$Area <- factor(case$Area,
+                    levels = c("U",
+                               "I",
+                               "R",
+                               "S",
+                               "-1"),
+                    labels = c("Urban",
+                               "Inner city",
+                               "Rural",
+                               "Suburb",
+                               "Unknown"))
+
+case$Teach[is.na(case$Teach)] <- -1
+case$Teach <- factor(case$Teach,
+                    levels = rev((-1):1),
+                    labels = c("Teaching",
+                               "Non-Teaching",
+                               "Unknown"))
+```
+`r paste("Number of case =", format(nrow(case), big.mark = ","))`
+
+
+```{r hf_discharges}
 # HF discharges----
 t1 <- table(case$DSCYR)
 t1 <- data.table(Year = as.integer(names(t1)),
                  Counts = c(t1))
 DT::datatable(t1,
-              caption = "Number of HF Discharges",
+              caption = "Table 1: Number of first HF discharges by year",
               rownames = FALSE,
+              class = "cell-border stripe",
               options = list(searching = TRUE,
                              pageLength = nrow(t1)))
 ```
 
-```{r plotHF, fig.height=5, fig.width=7}
+```{r hf_discharges_plot, fig.height = 5, fig.width = 8}
 # Plot HF discharges----
 p0 <- ggplot(t1,
              aes(x = Year,
@@ -70,51 +114,75 @@ p0 <- ggplot(t1,
                      limits = c(1995, 2015)) +
   scale_y_continuous(breaks = seq(0, 15000, 1000),
                      limits = c(0, 15000)) +
-  ggtitle(paste("Number of First HF Discharges \n",
-                "Total of",
+  ggtitle(paste("Figure 1: Number of first HF discharges. Total of",
                 nrow(case),
-                "Patients \n No Prior HF")) +
+                "patients, no prior HF.")) +
   theme(axis.text.x = element_text(angle = 45,
                                    hjust = 1),
-        plot.title = element_text(hjust = 0.5))
+        plot.title = element_text(hjust = 0))
 p0
 ```
 
-NOTE: the higher number in early years could be due to no information on prior HF, hence more patients remained. Also, we needed at least one year follow-up for all patients. Hence, we restricted records to 2000-2014 interval.
+**NOTE**: the higher number of patients in the early years could be due to censored records containing prior HF; hence, more patients remained. Also, we needed at least one year follow-up for all patients; hence, we restricted records to 2000-2014 interval.
 
 ```{r demog}
 case <- case[YEAR > 1999 & case$DSCYR < 2015, ]
 
 # Pubication/Table1: Demographics----
-summary(case)
+# summary(case)
 
 table1 <- t(data.table(`Mean Age at First AMI Admission +/- S.D.` = paste(round(mean(case$AGE), 1),
                                                                           "+/-",
                                                                           round(sd(case$AGE), 1),
                                                                           sep = ""),
-                       `Female(%)` = round(100*sum(case$SEX == "F")/nrow(case), 
+                       `Female (%)` = round(100*sum(case$SEX == "F")/nrow(case), 
                                            1),
-                       `Race(%)` = "",
-                       `  White` = round(100*sum(case$RACE == "White")/nrow(case),
+                       `Race (%)` = "",
+                       `* White` = round(100*sum(case$RACE == "White")/nrow(case),
                                          1),
-                       `  Black` = round(100*sum(case$RACE == "Black")/nrow(case),
+                       `*  Black` = round(100*sum(case$RACE == "Black")/nrow(case),
                                          1),
-                       `  Other` = round(100*sum(case$RACE == "Other")/nrow(case),
+                       `*  Other` = round(100*sum(case$RACE == "Other")/nrow(case),
                                          1),
-                       `Ethnicity(%)` = "",
-                       `  Hispanic` = round(100*sum(case$HISPAN == "Hispanic")/nrow(case), 
+                       `Ethnicity (%)` = "",
+                       `*  Hispanic` = round(100*sum(case$HISPAN == "Hispanic")/nrow(case), 
                                             1),
-                       `  Non-hispanic` = round(100*sum(case$HISPAN == "Non-Hispanic")/nrow(case), 
+                       `*  Non-hispanic` = round(100*sum(case$HISPAN == "Non-Hispanic")/nrow(case), 
                                                 1),
-                       `  Unknown` = round(100*sum(case$HISPAN == "Unknown")/nrow(case), 
+                       `*  Unknown` = round(100*sum(case$HISPAN == "Unknown")/nrow(case), 
                                            1),
                        `Insurance(%)` = "",
-                       `  Commercial` = round(100*sum(case$PRIME == "COMMERCIAL")/nrow(case), 
+                       `*  Commercial` = round(100*sum(case$PRIME == "COMMERCIAL")/nrow(case), 
                                               1),
-                       `  Medicare` = round(100*sum(case$PRIME == "medicare")/nrow(case), 
+                       `*  Medicare` = round(100*sum(case$PRIME == "medicare")/nrow(case), 
                                             1),
-                       `  Medicaid/Self-Pay/Other` = round(100*sum(case$PRIME == "medicaid/self-pay/other")/nrow(case), 
+                       `*  Medicaid/Self-Pay/Other` = round(100*sum(case$PRIME == "medicaid/self-pay/other")/nrow(case), 
                                                            1),
+                       `Admission Hospital Type (%)` = "",
+                       `*  Teaching` = round(100*sum(case$Teach == "Teaching")/nrow(case), 
+                                              1),
+                       `*  Non-Teaching` = round(100*sum(case$Teach == "Non-Teaching")/nrow(case), 
+                                              1),
+                       `*  Unknown` = round(100*sum(case$Teach == "Unknown")/nrow(case), 
+                                              1),
+                       `Admission to Hospital Area (%)` = "",
+                       `*  Urban` = round(100*sum(case$Area == "Urban")/nrow(case), 
+                                              1), 
+                       `*  Inner city` = round(100*sum(case$Area == "Inner city")/nrow(case), 
+                                              1), 
+                       `*  Rural` = round(100*sum(case$Area == "Rural")/nrow(case), 
+                                              1), 
+                       `*  Suburb` = round(100*sum(case$Area == "Suburb")/nrow(case), 
+                                              1),
+                       `*  Unknown` = round(100*sum(case$Area == "Unknown")/nrow(case), 
+                                              1), 
+                       `Admission Hospital Cath Lab` = "",
+                       `*  Cath Lab` = round(100*sum(case$CLAB == "Cath Lab")/nrow(case), 
+                                              1),
+                       `*  No Cath Lab` = round(100*sum(case$CLAB == "No Cath Lab")/nrow(case), 
+                                              1),
+                       `*  Unknown` = round(100*sum(case$CLAB == "Unknown")/nrow(case), 
+                                              1),
                        `Number of HF Patients` = nrow(case)))
 colnames(table1) <- "Summary"
 
@@ -123,16 +191,17 @@ write.csv(table1,
           file = "tmp/table1.csv")
 
 DT::datatable(table1,
-              caption = "HF Patients' Demographics",
+              caption = "Table 2: HF pateints' characteristics",
               rownames = TRUE,
+              class = "cell-border stripe",
               options = list(searching = TRUE,
                              pageLength = nrow(table1)))
-```
+```  
 
 # Part II: Rates
-```{r Rates, fig.height=7, fig.width=8}
+## All_Cause Readmissions
+```{r rates_all_cause_readm}
 invisible({
-  # Table 1a Appendix: all-cause readmissions----
   # 30 days----
   t1 <- addmargins(table(case$DSCYR,
                          case$days2readm < 31 &
@@ -175,8 +244,25 @@ invisible({
                         rate.90 = t2$rate,
                         rate.180 = t3$rate,
                         rate.1y = t4$rate)
+})
+
+colnames(t1a.apx) <- c("HF Discharge Year",
+                       "30-Day",
+                       "90-Day",
+                       "180-Day",
+                       "1-Year")
+print(DT::datatable(t1a.apx,
+                    caption = "Table 3a: all-cause readmissions (%)",
+                    rownames = FALSE,
+                    
+                    class = "cell-border stripe",
+                    options = list(searching = TRUE,
+                                   pageLength = nrow(t1a.apx))))
+```
   
-  # Table 1b Appendix: HF readmissions----
+## HF Readmissions
+```{r rates_hf_readm}
+invisible({
   # 30 days----
   t1 <- addmargins(table(case$DSCYR,
                          case$days2post.hf.dx1 < 31 &
@@ -219,8 +305,24 @@ invisible({
                         rate.90 = t2$rate,
                         rate.180 = t3$rate,
                         rate.1y = t4$rate)
-  
-  # Table 1c Appendix: all-cause death rates----
+})
+colnames(t1b.apx) <- c("HF Discharge Year",
+                       "30-Day",
+                       "90-Day",
+                       "180-Day",
+                       "1-Year")
+print(DT::datatable(t1b.apx,
+                    caption = "Table 3b: HF readmissions (%)",
+                    rownames = FALSE,
+                    
+                    class = "cell-border stripe",
+                    options = list(searching = TRUE,
+                                   pageLength = nrow(t1b.apx))))
+```
+
+## All-Cause Death
+```{r rates_all_cause_death}
+invisible({
   # 30 days----
   t1 <- addmargins(table(case$DSCYR,
                          case$days2death < 31 &
@@ -263,8 +365,24 @@ invisible({
                         rate.90 = t2$rate,
                         rate.180 = t3$rate,
                         rate.1y = t4$rate)
-  
-  # Table 1d Appendix: CV death----
+})
+colnames(t1c.apx) <- c("HF Discharge Year",
+                       "30-Day",
+                       "90-Day",
+                       "180-Day",
+                       "1-Year")
+print(DT::datatable(t1c.apx,
+                    caption = "Table 3c: all-cause death (%)",
+                    rownames = FALSE,
+                    
+                    class = "cell-border stripe",
+                    options = list(searching = TRUE,
+                                   pageLength = nrow(t1c.apx))))
+```
+
+## CV Death
+```{r rates_cv_death}
+invisible({
   # 30 days----
   t1 <- addmargins(table(case$DSCYR,
                          case$days2cvdeath < 31 &
@@ -308,39 +426,22 @@ invisible({
                         rate.180 = t3$rate,
                         rate.1y = t4$rate)
 })
+colnames(t1d.apx) <- c("HF Discharge Year",
+                       "30-Day",
+                       "90-Day",
+                       "180-Day",
+                       "1-Year")
+print(DT::datatable(t1d.apx,
+                    caption = "Table 3d: CV death (%)",
+                    rownames = FALSE,
+                    
+                    class = "cell-border stripe",
+                    options = list(searching = TRUE,
+                                   pageLength = nrow(t1d.apx))))
+```
 
-# Print Table1 Appendix----
-# Remove sums
-t1a.apx <- t1a.apx[-nrow(t1a.apx)]
-t1b.apx <- t1b.apx[-nrow(t1b.apx)]
-t1c.apx <- t1c.apx[-nrow(t1c.apx)]
-t1d.apx <- t1d.apx[-nrow(t1d.apx)]
-
-# Save tables as a list
-t1.apx <- list(t1a.apx,
-               t1b.apx,
-               t1c.apx,
-               t1d.apx)
-names(t1.apx) <- c("All-Cause Readmissions",
-                   "HF Readmissions",
-                   "All-Cause Mortality",
-                   "Cardiovascular Mortality")
-
-for(i in 1:length(t1.apx)) {
-  tmp <- t1.apx[[i]]
-  colnames(tmp) <- c("AMI Discharge Year",
-                     "30-Day",
-                     "90-Day",
-                     "180-Day",
-                     "1-Year")
-  print(DT::datatable(tmp,
-                      caption = names(t1.apx)[i],
-                      rownames = FALSE,
-                      options = list(searching = TRUE,
-                                     pageLength = nrow(tmp))))
-}
-
-# Save Table1 Appendix as CSV
+```{r rates_plot, fig.width = 8, fig.height = 7}
+# Save the table as CSV
 table1.apx <- cbind.data.frame(t1a.apx,
                                t1b.apx[, -1],
                                t1c.apx[, -1],
@@ -357,10 +458,10 @@ colnames(tmp) <- colnames(table1.apx)
 table1.apx <- rbind.data.frame(tmp,
                                table1.apx)
 colnames(table1.apx) <- c("",
-                          "Rates of All-Cause Readmissions", "", "", "",
-                          "Rates of HF Readmissions", "", "", "",
-                          "Rates of All-Cause Death", "", "", "",
-                          "Rates of CV Death", "", "", "")
+                          "All-Cause Readmissions (%)", "", "", "",
+                          "HF Readmissions (%)", "", "", "",
+                          "All-Cause Death (%)", "", "", "",
+                          "CV Death (%)", "", "", "")
 
 write.csv(table1.apx,
           file = "tmp/table1.apx.csv",
@@ -373,10 +474,20 @@ invisible({
 })
 
 # Plot rates----
+t1.apx <- list(t1a.apx[-16, ],
+               t1b.apx[-16, ],
+               t1c.apx[-16, ],
+               t1d.apx[-16, ])
+
+names(t1.apx) <- c("All-Cause Readmissions (%)",
+                      "HF Readmissions (%)", 
+                      "All-Cause Death (%)",
+                      "CV Death (%)")
+
 out <- list()
 for (i in 1:length(t1.apx)) {
   out[[i]] <- melt.data.table(data = t1.apx[[i]], 
-                              id.vars = "dschyear",
+                              id.vars = 1,
                               measure.vars = c(2:5),
                               variable.name = "followup",
                               value.name = "rate")
@@ -395,7 +506,7 @@ out$endpoint <- factor(out$endpoint,
 
 # Figure 1: all rates----
 p1 <- ggplot(data = out,
-             aes(x = dschyear,
+             aes(x = `HF Discharge Year`,
                  y = rate,
                  group = followup,
                  fill = followup)) +
@@ -408,9 +519,9 @@ p1 <- ggplot(data = out,
   geom_hline(yintercept = 0,
              linetype = "dashed") +
   scale_x_discrete("1st HF Discharge Year",
-                   breaks = unique(out$dschyear),
-                   labels = unique(out$dschyear)) +
-  scale_y_continuous("Rate (%)") +
+                   breaks = unique(out$`HF Discharge Year`),
+                   labels = unique(out$`HF Discharge Year`)) +
+  scale_y_continuous("Percent (%)") +
   ggtitle("") +
   scale_fill_manual(label = c("1-Year",
                               "180-Day",
@@ -423,7 +534,7 @@ p1 <- ggplot(data = out,
                                    hjust = 0),
         plot.title = element_text(hjust = 0))
 
-# # Save Figure1 as TIFF
+# # Saveas TIFF
 # tiff(filename = "figure1_rates.tiff",
 #      height = 5,
 #      width = 12,
@@ -433,12 +544,11 @@ p1 <- ggplot(data = out,
 # print(p1)
 # graphics.off()
 
-# Print Figure1
 p1
 ```
 
-## Causes for Readmission
-```{r readmCauses}
+# Causes for Readmission
+```{r readm_causes}
 source("source/icd9_dx_get_data_v1.R")
 dt.icd <- icd9cm_merge_version_dx(32)
 
@@ -459,7 +569,10 @@ t30$Percent <- round(100*t30$N/sum(t30$N), 1)
 t30 <- t30[order(t30$N,
                  decreasing = TRUE),]
 DT::datatable(t30,
-              caption = "30-Day Readmissions by Cause (DX1)")
+              caption = "30-Day Readmissions by Cause (DX1)",
+              class = "cell-border stripe",
+              options = list(searching = TRUE,
+                             pageLength = 20))
 
 tmp90<- tmp[days2readm < 91, ]
 t90 <- data.table(table(tmp90$major))
@@ -467,7 +580,10 @@ t90$Percent <- round(100*t90$N/sum(t90$N), 1)
 t90 <- t90[order(t90$N,
                  decreasing = TRUE),]
 DT::datatable(t90,
-              caption = "90-Day Readmissions by Cause (DX1)")
+              caption = "90-Day Readmissions by Cause (DX1)",
+              class = "cell-border stripe",
+              options = list(searching = TRUE,
+                             pageLength = 20))
 
 tmp180 <- tmp[days2readm < 181, ]
 t180 <- data.table(table(tmp180$major))
@@ -475,7 +591,10 @@ t180$Percent <- round(100*t180$N/sum(t180$N), 1)
 t180 <- t180[order(t180$N,
                  decreasing = TRUE),]
 DT::datatable(t180,
-              caption = "180-Day Readmissions by Cause (DX1)")
+              caption = "180-Day Readmissions by Cause (DX1)",
+              class = "cell-border stripe",
+              options = list(searching = TRUE,
+                             pageLength = 20))
 
 tmp1y <- tmp[days2readm < 366, ]
 t1y <- data.table(table(tmp1y$major))
@@ -483,44 +602,101 @@ t1y$Percent <- round(100*t1y$N/sum(t1y$N), 1)
 t1y <- t1y[order(t1y$N,
                  decreasing = TRUE),]
 DT::datatable(t1y,
-              caption = "1-Year Readmissions by Cause (DX1)")
+              caption = "1-Year Readmissions by Cause (DX1)",
+              class = "cell-border stripe",
+              options = list(searching = TRUE,
+                             pageLength = 20))
 ```
 
+# Length of Stay
+```{r length_of_stay}
+# Length of stay
+case$los <- as.numeric(difftime(case$DSCHDAT,
+                     case$ADMDAT,
+                     units = "days"))
+
+# Distribution of length of stay
+summary(case$los)
+p1 <- ggplot(case[ , "los"],
+             aes(x = los)) +
+  geom_histogram(bins = 15,
+                 color = "black",
+                 fill = "green") +
+  scale_x_log10("Length of Stay",
+                breaks = c(0, 1, 5, 10, 15, 30, 60, 120, 180))
+p1
+```
+
+**NOTE***: 3,433  patients were discharged at the day of admission. this ight include transfers to other hospitals but we did not look at transfers.
+
 # Part III: Logistic Regression Models
-```{r glmLabels}
+```{r labels}
 t2.names <- c("Discharge year",
-                 "Age (per 10 Years)",
-                 "Sex (Male)",
-                 "Non-Hispanic vs. Hispanic",
-                 "Unknown vs. Hispanic",
-                 "Commercial Insurance vs. Medicare",
-                 "Medicaid/Self-Pay/Other vs. Medicare",
-                 "Length of Stay",
-                 "AFib/AFlutter",
-                 "AMI",
-                 "Anemia",
-                 "CKD",
-                 "COPD",
-                 "Diabetes",
-                 "Hypertension",
-                 "Hyperlipidemia",
-                 "Sleep Apnea",
-                 "Parkinson",
-                 "Stroke",
-                 "TIA")
+              "Age (per 10 Years)",
+              "Sex (Male)",
+              "Race (Black)",
+              "Race (Other)",
+              "Non-Hispanic vs. Hispanic",
+              "Unknown vs. Hispanic",
+              "Commercial Insurance vs. Medicare",
+              "Medicaid/Self-Pay/Other vs. Medicare",
+              "Length of Stay",
+              "AFib/AFlutter",
+              "AMI",
+              "Anemia",
+              "CKD",
+              "COPD",
+              "Diabetes",
+              "Hypertension",
+              "Hyperlipidemia",
+              "Sleep Apnea",
+              "Parkinson",
+              "Stroke",
+              "TIA",
+              "Hosp No Cath Lab vs. Cath Lab",
+              # "Hosp Unknown vs. Cath Lab",
+              "Hosp Inner City Area vs. Urban",
+              "Hosp Rural Area vs. Urban",
+              "Hosp Suburb Area vs. Urban",
+              # "Hosp Unknown Area vs. Urban",
+              "Hosp Non-Teaching vs. Teaching")
+              # "Hosp Unknown vs. Teaching")
 
 # Discharge year as numeric
 case$DSCYR <- as.numeric(case$DSCYR)
 
-# Length of stay
-case$los <- difftime(case$DSCHDAT,
-                     case$ADMDAT,
-                     units = "days")
+# Remove patients from hosps with no info
+paste(format(nrow(case[Area == "Unknown", ]),
+             big.mark = ","),
+      "patients are from hospitals with no info; REMOVE THEM")
+case <- droplevels(case[Area != "Unknown", ])
 ```
 
+## Correlations of binary variables
+```{r correlations}
+tmp <- case[, haf:htia]
+colnames(tmp) <- c("AFib/AFlutter",
+                   "AMI",
+                   "Anemia",
+                   "CKD",
+                   "COPD",
+                   "Diabetes",
+                   "Hypertension",
+                   "Hyperlipidemia",
+                   "Sleep Apnea",
+                   "Parkinson",
+                   "Stroke",
+                   "TIA")
+cor1 <- cor(tmp,
+            use = "pairwise.complete.obs")
+heatmap(cor1,
+        col = rev(heat.colors(10)))
+```
+
+Stroke and TIA are highly correlated while hypertension is mildley correlated with hyperlipidemia, diabetes, COPD and AFib/AFlutter.
+
 ## All-Cause Readmissions
-```{r glmAllReadm, fig.height=5, fig.width=10}
-# Publication/Table 2a: All-cause readmissions----
+```{r glm_all_readm, fig.height = 5, fig.width = 15}
 case$readm30 <- case$readm90 <- case$readm180 <- case$readm1y <- FALSE
 case$readm30[case$days2readm < 31] <- TRUE
 case$readm90[case$days2readm < 91] <- TRUE
@@ -530,6 +706,7 @@ case$readm1y[case$days2readm < 366] <- TRUE
 m2a.30 <- glm(readm30 ~ DSCYR +
                 decade +
                 SEX +
+                RACE +
                 HISPAN +
                 PRIME +
                 los +
@@ -544,13 +721,17 @@ m2a.30 <- glm(readm30 ~ DSCYR +
                 hosa +
                 hpark +
                 hstroke  +
-                htia,
+                htia +
+                CLAB +
+                Area +
+                Teach,
               family = binomial(logit),
               data = case)
 
 m2a.90 <- glm(readm90 ~ DSCYR +
                 decade +
                 SEX +
+                RACE +
                 HISPAN +
                 PRIME +
                 los +
@@ -565,34 +746,42 @@ m2a.90 <- glm(readm90 ~ DSCYR +
                 hosa +
                 hpark +
                 hstroke  +
-                htia,
+                htia +
+                CLAB +
+                Area +
+                Teach,
               family = binomial(logit),
               data = case)
 
 m2a.180 <- glm(readm180 ~ DSCYR +
-                decade +
-                SEX +
-                HISPAN +
-                PRIME +
-                los +
-                haf +
-                hami +
-                hanemia  +
-                hckd +
-                hcopd +
-                hdiab +
-                hhyper +
-                hlipid  +
-                hosa +
-                hpark +
-                hstroke  +
-                htia,
+                 decade +
+                 SEX +
+                 RACE +
+                 HISPAN +
+                 PRIME +
+                 los +
+                 haf +
+                 hami +
+                 hanemia  +
+                 hckd +
+                 hcopd +
+                 hdiab +
+                 hhyper +
+                 hlipid  +
+                 hosa +
+                 hpark +
+                 hstroke  +
+                 htia +
+                 CLAB +
+                 Area +
+                 Teach,
                family = binomial(logit),
                data = case)
 
 m2a.1y <- glm(readm1y ~ DSCYR +
                 decade +
                 SEX +
+                RACE +
                 HISPAN +
                 PRIME +
                 los +
@@ -607,7 +796,10 @@ m2a.1y <- glm(readm1y ~ DSCYR +
                 hosa +
                 hpark +
                 hstroke  +
-                htia,
+                htia +
+                CLAB +
+                Area +
+                Teach,
               family = binomial(logit),
               data = case)
 
@@ -717,11 +909,11 @@ p2a <- ggplot(t2a,
 # print(p2a)
 # graphics.off()
 
-p2a
+print(p2a)
 ```
 
 ## HF Cause Readmissions
-```{r glmHFReadm, fig.height=5, fig.width=10}
+```{r glm_hf_readm, fig.height = 5, fig.width = 15}
 # Publication/Table 2a: All-cause readmissions----
 case$hf30 <- case$hf90 <- case$hf180 <- case$hf1y <- FALSE
 case$hf30[case$days2post.hf.dx1 < 31] <- TRUE
@@ -732,6 +924,7 @@ case$hf1y[case$days2post.hf.dx1 < 366] <- TRUE
 m2b.30 <- glm(hf30 ~ DSCYR +
                 decade +
                 SEX +
+                RACE +
                 HISPAN +
                 PRIME +
                 los +
@@ -746,13 +939,17 @@ m2b.30 <- glm(hf30 ~ DSCYR +
                 hosa +
                 hpark +
                 hstroke  +
-                htia,
+                htia +
+                CLAB +
+                Area +
+                Teach,
               family = binomial(logit),
               data = case)
 
 m2b.90 <- glm(hf90 ~ DSCYR +
                 decade +
                 SEX +
+                RACE +
                 HISPAN +
                 PRIME +
                 los +
@@ -767,13 +964,17 @@ m2b.90 <- glm(hf90 ~ DSCYR +
                 hosa +
                 hpark +
                 hstroke  +
-                htia,
+                htia +
+                CLAB +
+                Area +
+                Teach,
               family = binomial(logit),
               data = case)
 
 m2b.180 <- glm(hf180 ~ DSCYR +
                 decade +
                 SEX +
+                RACE +
                 HISPAN +
                 PRIME +
                 los +
@@ -788,13 +989,17 @@ m2b.180 <- glm(hf180 ~ DSCYR +
                 hosa +
                 hpark +
                 hstroke  +
-                htia,
+                htia +
+                CLAB +
+                Area +
+                Teach,
                family = binomial(logit),
                data = case)
 
 m2b.1y <- glm(hf1y ~ DSCYR +
                 decade +
                 SEX +
+                RACE +
                 HISPAN +
                 PRIME +
                 los +
@@ -809,7 +1014,10 @@ m2b.1y <- glm(hf1y ~ DSCYR +
                 hosa +
                 hpark +
                 hstroke  +
-                htia,
+                htia +
+                CLAB +
+                Area +
+                Teach,
               family = binomial(logit),
               data = case)
 
@@ -919,11 +1127,11 @@ p2b <- ggplot(t2b,
 # print(p2b)
 # graphics.off()
 
-p2b
+print(p2b)
 ```
 
 ## All-Cause Death
-```{r glmAllCauseDeath, fig.height=5, fig.width=10}
+```{r glmAllCauseDeath, fig.height = 5, fig.width = 15}
 # Publication/Table 2c: All-cause death----
 case$dead30 <- case$dead90 <- case$dead180 <- case$dead1y <- FALSE
 case$dead30[case$days2death < 31] <- TRUE
@@ -934,6 +1142,7 @@ case$dead1y[case$days2death < 366] <- TRUE
 m2c.30 <- glm(dead30 ~ DSCYR +
                 decade +
                 SEX +
+                RACE +
                 HISPAN +
                 PRIME +
                 los +
@@ -948,13 +1157,17 @@ m2c.30 <- glm(dead30 ~ DSCYR +
                 hosa +
                 hpark +
                 hstroke  +
-                htia,
+                htia +
+                CLAB +
+                Area +
+                Teach,
               family = binomial(logit),
               data = case)
 
 m2c.90 <- glm(dead90 ~ DSCYR +
                 decade +
                 SEX +
+                RACE +
                 HISPAN +
                 PRIME +
                 los +
@@ -969,13 +1182,17 @@ m2c.90 <- glm(dead90 ~ DSCYR +
                 hosa +
                 hpark +
                 hstroke  +
-                htia,
+                htia +
+                CLAB +
+                Area +
+                Teach,
               family = binomial(logit),
               data = case)
 
 m2c.180 <- glm(dead180 ~ DSCYR +
                 decade +
                 SEX +
+                RACE +
                 HISPAN +
                 PRIME +
                 los +
@@ -990,13 +1207,17 @@ m2c.180 <- glm(dead180 ~ DSCYR +
                 hosa +
                 hpark +
                 hstroke  +
-                htia,
+                htia +
+                CLAB +
+                Area +
+                Teach,
                family = binomial(logit),
                data = case)
 
 m2c.1y <- glm(dead1y ~ DSCYR +
                 decade +
                 SEX +
+                RACE +
                 HISPAN +
                 PRIME +
                 los +
@@ -1011,7 +1232,10 @@ m2c.1y <- glm(dead1y ~ DSCYR +
                 hosa +
                 hpark +
                 hstroke  +
-                htia,
+                htia +
+                CLAB +
+                Area +
+                Teach,
               family = binomial(logit),
               data = case)
 
@@ -1121,11 +1345,11 @@ p2c <- ggplot(t2c,
 # print(p2c)
 # graphics.off()
 
-p2c
+print(p2c)
 ```
 
 ## CV Death
-```{r glmCVdeath, fig.height=5, fig.width=10}
+```{r glmCVdeath, fig.height = 5, fig.width = 15}
 # Publication/Table 2d: All-cause readmissions----
 case$cvdeath30 <- case$cvdeath90 <- case$cvdeath180 <- case$cvdeath1y <- FALSE
 case$cvdeath30[case$days2cvdeath < 31] <- TRUE
@@ -1136,6 +1360,7 @@ case$cvdeath1y[case$days2cvdeath < 366] <- TRUE
 m2d.30 <- glm(cvdeath30 ~ DSCYR +
                 decade +
                 SEX +
+                RACE +
                 HISPAN +
                 PRIME +
                 los +
@@ -1150,13 +1375,17 @@ m2d.30 <- glm(cvdeath30 ~ DSCYR +
                 hosa +
                 hpark +
                 hstroke  +
-                htia,
+                htia +
+                CLAB +
+                Area +
+                Teach,
               family = binomial(logit),
               data = case)
 
 m2d.90 <- glm(cvdeath90 ~ DSCYR +
                 decade +
                 SEX +
+                RACE +
                 HISPAN +
                 PRIME +
                 los +
@@ -1171,13 +1400,17 @@ m2d.90 <- glm(cvdeath90 ~ DSCYR +
                 hosa +
                 hpark +
                 hstroke  +
-                htia,
+                htia +
+                CLAB +
+                Area +
+                Teach,
               family = binomial(logit),
               data = case)
 
 m2d.180 <- glm(cvdeath180 ~ DSCYR +
                 decade +
                 SEX +
+                RACE +
                 HISPAN +
                 PRIME +
                 los +
@@ -1192,13 +1425,17 @@ m2d.180 <- glm(cvdeath180 ~ DSCYR +
                 hosa +
                 hpark +
                 hstroke  +
-                htia,
+                htia +
+                CLAB +
+                Area +
+                Teach,
                family = binomial(logit),
                data = case)
 
 m2d.1y <- glm(cvdeath1y ~ DSCYR +
                 decade +
                 SEX +
+                RACE +
                 HISPAN +
                 PRIME +
                 los +
@@ -1213,7 +1450,10 @@ m2d.1y <- glm(cvdeath1y ~ DSCYR +
                 hosa +
                 hpark +
                 hstroke  +
-                htia,
+                htia +
+                CLAB +
+                Area +
+                Teach,
               family = binomial(logit),
               data = case)
 
@@ -1327,8 +1567,23 @@ p2d
 ```
 
 # Appendix
+## Abbreviations
+```{r abbreviations}
+abbv <- data.table(Abbreviation = c("AMI",
+                                    "HF"),
+                   Description = c("Acute myocardial infarction",
+                                   "Heart failure"))
+setkey(abbv, 
+       Abbreviation)
+DT::datatable(abbv,
+              caption = "Appendix Table 1: abbreviations",
+              class = "cell-border stripe",
+              options = list(searching = TRUE,
+                             pageLength = nrow(t1)))
+```
+
+
 ## Session Info
 ```{r}
 sessionInfo()
 ```
-
