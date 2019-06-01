@@ -14,6 +14,10 @@
 [References](#ref)   
 
 ## Daily Log<a name="log"></a>
+### 05/31/2019
+* Added age-by-year and tables ICD-9/ICD-10 codes defining comorbidities and cause of death.    
+* Mike finished AHA2019 abstract.
+
 ### 05/25/2019
 * Added hospital characteristics and correlation of binary variables.
 

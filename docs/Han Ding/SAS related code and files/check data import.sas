@@ -1,0 +1,2 @@
+PROC PRINT DATA=md8(obs=10);
+RUN; 

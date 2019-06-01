@@ -82,6 +82,7 @@ case$Teach <- factor(case$Teach,
                                "Non-Teaching",
                                "Unknown"))
 ```
+
 `r paste("Number of case =", format(nrow(case), big.mark = ","))`
 
 
@@ -90,6 +91,18 @@ case$Teach <- factor(case$Teach,
 t1 <- table(case$DSCYR)
 t1 <- data.table(Year = as.integer(names(t1)),
                  Counts = c(t1))
+dt.age <- aggregate(case$AGE,
+                    by = list(Year = case$YEAR),
+                    FUN = "mean")
+dt.age$x <- round(dt.age$x, 1)
+names(dt.age)[2] <- "Age at 1st HF"
+
+dt.age$Year <- as.numeric(dt.age$Year)
+
+t1 <- merge(t1,
+            dt.age,
+            by = "Year")
+
 DT::datatable(t1,
               caption = "Table 1: Number of first HF discharges by year",
               rownames = FALSE,
@@ -1567,6 +1580,94 @@ p2d
 ```
 
 # Appendix
+## ICD Codes
+### Diagnoses (ICD-9)
+```{r icd9, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE}
+l1 <- fread("data/midas.hf_icd9_codes_2019-05-10.csv",
+            colClasses = c("character"))
+
+# Converto to comorbidity map----
+l1 <- as.comorbidity_map(split(x = l1$code,
+                               f = l1$comorb))
+
+# Cancer----
+source("source/icd9_dx_get_data_v1.R")
+dt.icd <- icd9cm_merge_version_dx(32)
+l.cancer <- dt.icd[dt.icd$major_code %in% c(140:209,
+                                            235:239), ]
+# NOTE: excludes binign neoplasms, ICD9 210-229
+
+# Combine all malignant cancers
+l1$cancer <- l.cancer$code
+
+# Table1 appendix: ICD-9 mapping----
+l2 <- lapply(l1,
+             function(a) {
+               a <- icd::short_to_decimal(a)
+               paste(a,
+                     collapse = "; ")
+             })
+table1app <- data.table(Comorbidity = names(l2),
+                        `ICD-9` = do.call("rbind",
+                                          l2))
+table1app <- data.table(Comorbidity = c("AFib/AFlutter",
+                                        "AMI",
+                                        "Anemia",
+                                        "CKD",
+                                        "COPD",
+                                        "Diabetes",
+                                        "HF",
+                                        "Hypertension",
+                                        "Hyperlipidemia",
+                                        "Sleep Apnea",
+                                        "Parkinson",
+                                        "Stroke",
+                                        "TIA",
+                                        "Cancer"),
+                        Variable = table1app$Comorbidity,
+                        ICD9 = table1app$`ICD-9.V1`)
+
+# # Save Table1 Appendix as CSV
+# write.csv(table1app,
+#           file = "tmp/table1app.csv",
+#           row.names = FALSE)
+
+DT::datatable(table1app,
+              caption = "Appendix Table 1: ICD-9 codes for comorbidities",
+              class = "cell-border stripe",
+              rownames = FALSE,
+              options = list(searching = TRUE,
+                             pageLength = nrow(table1app)))
+```
+
+### Cause of CV death (ICD-10)
+```{r icd10, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE}
+t2 <- data.table(Diagnosis = c("Major cardiovascular diseases",
+                               "Diseases of heart",
+                               "Hypertensive heart disease with or without renal disease",
+                               "Ischemic heart diseases",
+                               "Other diseases of heart",
+                               "Essential (primary) hypertension and hypertensive renal disease",
+                               "Cerebrovascular diseases",
+                               "Atherosclerosis",
+                               "Other diseases of circulatory system"),
+                 `ICD-10` = c("I00-I78",
+                              "I00-I09, I11, I13, I20-I51",
+                              "I11,I13",
+                              "I20-I25",
+                              "I00-I09,I26-I51",
+                              "I10,I12",
+                              "I60-I69",
+                              "I70",
+                              "I71-I78"))
+DT::datatable(t2,
+              caption = "Appendix Table 2: CID-10 codes for cause of death",
+              rownames = FALSE,
+              class = "cell-border stripe",
+              options = list(searching = TRUE,
+                             pageLength = nrow(t1)))
+```
+
 ## Abbreviations
 ```{r abbreviations}
 abbv <- data.table(Abbreviation = c("AMI",
@@ -1576,7 +1677,7 @@ abbv <- data.table(Abbreviation = c("AMI",
 setkey(abbv, 
        Abbreviation)
 DT::datatable(abbv,
-              caption = "Appendix Table 1: abbreviations",
+              caption = "Appendix Table 3: abbreviations",
               class = "cell-border stripe",
               options = list(searching = TRUE,
                              pageLength = nrow(t1)))
