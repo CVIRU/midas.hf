@@ -1,5 +1,5 @@
 ---
-title: "Readmission or Death After First HF Discharge"
+title: "Cardiovascular Outcomes in Heart Failure Patients"
 output:
   html_notebook:
     highlight: tango
@@ -92,7 +92,7 @@ t1 <- table(case$DSCYR)
 t1 <- data.table(Year = as.integer(names(t1)),
                  Counts = c(t1))
 dt.age <- aggregate(case$AGE,
-                    by = list(Year = case$YEAR),
+                    by = list(Year = case$DSCYR),
                     FUN = "mean")
 dt.age$x <- round(dt.age$x, 1)
 names(dt.age)[2] <- "Age at 1st HF"
@@ -111,6 +111,7 @@ DT::datatable(t1,
                              pageLength = nrow(t1)))
 ```
 
+# Plot of number of new HF patients form 1995 to 2015
 ```{r hf_discharges_plot, fig.height = 5, fig.width = 8}
 # Plot HF discharges----
 p0 <- ggplot(t1,
@@ -138,66 +139,179 @@ p0
 
 **NOTE**: the higher number of patients in the early years could be due to censored records containing prior HF; hence, more patients remained. Also, we needed at least one year follow-up for all patients; hence, we restricted records to 2000-2014 interval.
 
+# Plot of number of new HF patients form 2000 to 2014
+```{r hf_discharges_plot_2000_2014, fig.height = 5, fig.width = 8}
+t2 <- t1[Year > 1999 &
+                  Year < 2015, ]
+# Plot HF discharges----
+p0 <- ggplot(t2,
+             aes(x = Year,
+                 y = Counts)) +
+  geom_line(size = 1) +
+  geom_point(size = 3,
+             shape = 21,
+             fill = "red") +
+  scale_x_continuous("Discharge Year",
+                     breaks = 2000:2014,
+                     limits = c(2000, 2014)) +
+  scale_y_continuous("Number of Patients",
+                     breaks = seq(0, 10000, 1000),
+                     limits = c(0, 10000)) +
+  ggtitle(paste("Figure 1: Number of first HF discharges. Total of",
+                format(nrow(case[DSCYR > 1999 & 
+                                   DSCYR < 2015]),
+                       big.mark = ","),
+                "patients, no prior HF.")) +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1),
+        plot.title = element_text(hjust = 0))
+p0
+
+# Linear trend
+t2$years <- t2$Year - 2000
+m1 <- lm(Counts ~ years,
+         data = t2)
+summary(m1)
+```
+
 ```{r demog}
-case <- case[YEAR > 1999 & case$DSCYR < 2015, ]
+case <- case[DSCYR > 1999 & DSCYR < 2015, ]
 
 # Pubication/Table1: Demographics----
 # summary(case)
-
-table1 <- t(data.table(`Mean Age at First AMI Admission +/- S.D.` = paste(round(mean(case$AGE), 1),
-                                                                          "+/-",
-                                                                          round(sd(case$AGE), 1),
-                                                                          sep = ""),
-                       `Female (%)` = round(100*sum(case$SEX == "F")/nrow(case), 
-                                           1),
-                       `Race (%)` = "",
-                       `* White` = round(100*sum(case$RACE == "White")/nrow(case),
-                                         1),
-                       `*  Black` = round(100*sum(case$RACE == "Black")/nrow(case),
-                                         1),
-                       `*  Other` = round(100*sum(case$RACE == "Other")/nrow(case),
-                                         1),
-                       `Ethnicity (%)` = "",
-                       `*  Hispanic` = round(100*sum(case$HISPAN == "Hispanic")/nrow(case), 
-                                            1),
-                       `*  Non-hispanic` = round(100*sum(case$HISPAN == "Non-Hispanic")/nrow(case), 
-                                                1),
-                       `*  Unknown` = round(100*sum(case$HISPAN == "Unknown")/nrow(case), 
-                                           1),
-                       `Insurance(%)` = "",
-                       `*  Commercial` = round(100*sum(case$PRIME == "COMMERCIAL")/nrow(case), 
-                                              1),
-                       `*  Medicare` = round(100*sum(case$PRIME == "medicare")/nrow(case), 
-                                            1),
-                       `*  Medicaid/Self-Pay/Other` = round(100*sum(case$PRIME == "medicaid/self-pay/other")/nrow(case), 
-                                                           1),
-                       `Admission Hospital Type (%)` = "",
-                       `*  Teaching` = round(100*sum(case$Teach == "Teaching")/nrow(case), 
-                                              1),
-                       `*  Non-Teaching` = round(100*sum(case$Teach == "Non-Teaching")/nrow(case), 
-                                              1),
-                       `*  Unknown` = round(100*sum(case$Teach == "Unknown")/nrow(case), 
-                                              1),
-                       `Admission to Hospital Area (%)` = "",
-                       `*  Urban` = round(100*sum(case$Area == "Urban")/nrow(case), 
-                                              1), 
-                       `*  Inner city` = round(100*sum(case$Area == "Inner city")/nrow(case), 
-                                              1), 
-                       `*  Rural` = round(100*sum(case$Area == "Rural")/nrow(case), 
-                                              1), 
-                       `*  Suburb` = round(100*sum(case$Area == "Suburb")/nrow(case), 
-                                              1),
-                       `*  Unknown` = round(100*sum(case$Area == "Unknown")/nrow(case), 
-                                              1), 
-                       `Admission Hospital Cath Lab` = "",
-                       `*  Cath Lab` = round(100*sum(case$CLAB == "Cath Lab")/nrow(case), 
-                                              1),
-                       `*  No Cath Lab` = round(100*sum(case$CLAB == "No Cath Lab")/nrow(case), 
-                                              1),
-                       `*  Unknown` = round(100*sum(case$CLAB == "Unknown")/nrow(case), 
-                                              1),
-                       `Number of HF Patients` = nrow(case)))
-colnames(table1) <- "Summary"
+table1 <- data.table(Description = c("Mean Age at First AMI Admission +/- S.D",
+                                     "Female (%)",
+                                     "Race (%)",
+                                     "* White",
+                                     "* Black",
+                                     "* Other",
+                                     "Ethnicity (%)",
+                                     "* Hispanic",
+                                     "* Non-hispanic",
+                                     "* Unknown",
+                                     "Insurance(%)",
+                                     "* Commercial",
+                                     "* Medicare",
+                                     "* Medicaid/Self-Pay/Other",
+                                     "Admission Hospital Type (%)",
+                                     "* Teaching",
+                                     "* Non-Teaching",
+                                     "* Unknown",
+                                     "Admission to Hospital Area (%)",
+                                     "* Urban",
+                                     "* Inner city",
+                                     "* Rural",
+                                     "* Suburb",
+                                     "* Unknown",
+                                     "Admission Hospital Cath Lab",
+                                     "* Cath Lab",
+                                     "* No Cath Lab",
+                                     "* Unknown",
+                                     "Number of HF Patients"),
+                     `Number of Patients` = c(paste(round(mean(case$AGE), 1),
+                                                    "+/-",
+                                                    round(sd(case$AGE), 1),
+                                                    sep = ""),
+                                              format(sum(case$SEX == "F"),
+                                                     big.mark = ","),
+                                              "",
+                                              format(sum(case$RACE == "White"),
+                                                     big.mark = ","),
+                                              format(sum(case$RACE == "Black"),
+                                                     big.mark = ","),
+                                              format(sum(case$RACE == "Other"),
+                                                     big.mark = ","),
+                                              "",
+                                              format(sum(case$HISPAN == "Hispanic"),
+                                                     big.mark = ","),
+                                              format(sum(case$HISPAN == "Non-Hispanic"),
+                                                     big.mark = ","),
+                                              format(sum(case$HISPAN == "Unknown"),
+                                                     big.mark = ","),
+                                              "",
+                                              format(sum(case$PRIME == "COMMERCIAL"),
+                                                     big.mark = ","),
+                                              format(sum(case$PRIME == "medicare"),
+                                                     big.mark = ","),
+                                              format(sum(case$PRIME == "medicaid/self-pay/other"),
+                                                     big.mark = ","),
+                                              "",
+                                              format(sum(case$Teach == "Teaching"),
+                                                     big.mark = ","),
+                                              format(sum(case$Teach == "Non-Teaching"),
+                                                     big.mark = ","),
+                                              format(sum(case$Teach == "Unknown"),
+                                                     big.mark = ","),
+                                              "",
+                                              format(sum(case$Area == "Urban"),
+                                                     big.mark = ","),
+                                              format(sum(case$Area == "Inner city"),
+                                                     big.mark = ","),
+                                              format(sum(case$Area == "Rural"),
+                                                     big.mark = ","),
+                                              format(sum(case$Area == "Suburb"),
+                                                     big.mark = ","),
+                                              format(sum(case$Area == "Unknown"),
+                                                     big.mark = ","),
+                                              "",
+                                              format(sum(case$CLAB == "Cath Lab"),
+                                                     big.mark = ","),
+                                              format(sum(case$CLAB == "No Cath Lab"),
+                                                     big.mark = ","),
+                                              format(sum(case$CLAB == "Unknown"),
+                                                     big.mark = ","),
+                                              format(nrow(case),
+                                                     big.mark = ",")),
+                     `Percent Patients` = c("",
+                                            round(100*sum(case$SEX == "F")/nrow(case),
+                                                  1),
+                                            "",
+                                            round(100*sum(case$RACE == "White")/nrow(case),
+                                                  1),
+                                            round(100*sum(case$RACE == "Black")/nrow(case),
+                                                  1),
+                                            round(100*sum(case$RACE == "Other")/nrow(case),
+                                                  1),
+                                            "",
+                                            round(100*sum(case$HISPAN == "Hispanic")/nrow(case), 
+                                                  1),
+                                            round(100*sum(case$HISPAN == "Non-Hispanic")/nrow(case), 
+                                                  1),
+                                            round(100*sum(case$HISPAN == "Unknown")/nrow(case), 
+                                                  1),
+                                            "",
+                                            round(100*sum(case$PRIME == "COMMERCIAL")/nrow(case), 
+                                                  1),
+                                            round(100*sum(case$PRIME == "medicare")/nrow(case), 
+                                                  1),
+                                            round(100*sum(case$PRIME == "medicaid/self-pay/other")/nrow(case), 
+                                                  1),
+                                            "",
+                                            round(100*sum(case$Teach == "Teaching")/nrow(case), 
+                                                  1),
+                                            round(100*sum(case$Teach == "Non-Teaching")/nrow(case), 
+                                                  1),
+                                            round(100*sum(case$Teach == "Unknown")/nrow(case), 
+                                                  1),
+                                            "",
+                                            round(100*sum(case$Area == "Urban")/nrow(case), 
+                                                  1), 
+                                            round(100*sum(case$Area == "Inner city")/nrow(case), 
+                                                  1), 
+                                            round(100*sum(case$Area == "Rural")/nrow(case), 
+                                                  1), 
+                                            round(100*sum(case$Area == "Suburb")/nrow(case), 
+                                                  1),
+                                            round(100*sum(case$Area == "Unknown")/nrow(case), 
+                                                  1), 
+                                            "",
+                                            round(100*sum(case$CLAB == "Cath Lab")/nrow(case), 
+                                                  1),
+                                            round(100*sum(case$CLAB == "No Cath Lab")/nrow(case), 
+                                                  1),
+                                            round(100*sum(case$CLAB == "Unknown")/nrow(case), 
+                                                  1),
+                                            ""))
 
 # Save Table1 as CSV
 write.csv(table1,
@@ -205,7 +319,7 @@ write.csv(table1,
 
 DT::datatable(table1,
               caption = "Table 2: HF pateints' characteristics",
-              rownames = TRUE,
+              rownames = FALSE,
               class = "cell-border stripe",
               options = list(searching = TRUE,
                              pageLength = nrow(table1)))
@@ -560,6 +674,19 @@ p1 <- ggplot(data = out,
 p1
 ```
 
+```{r rates_1y_trends}
+out <- list()
+for (i in 1:length(t1.apx)) {
+  tmp <- t1.apx[[i]]
+  tmp$year <- as.numeric(as.character(tmp$`HF Discharge Year`)) - 2000 
+  m1 <- lm(`1-Year` ~ year,
+           data = tmp)
+  out[[i]] <- summary(m1)
+}
+names(out) <- names(t1.apx)
+out
+```
+
 # Causes for Readmission
 ```{r readm_causes}
 source("source/icd9_dx_get_data_v1.R")
@@ -584,6 +711,7 @@ t30 <- t30[order(t30$N,
 DT::datatable(t30,
               caption = "30-Day Readmissions by Cause (DX1)",
               class = "cell-border stripe",
+              rownames = FALSE,
               options = list(searching = TRUE,
                              pageLength = 20))
 
@@ -595,6 +723,7 @@ t90 <- t90[order(t90$N,
 DT::datatable(t90,
               caption = "90-Day Readmissions by Cause (DX1)",
               class = "cell-border stripe",
+              rownames = FALSE,
               options = list(searching = TRUE,
                              pageLength = 20))
 
@@ -606,6 +735,7 @@ t180 <- t180[order(t180$N,
 DT::datatable(t180,
               caption = "180-Day Readmissions by Cause (DX1)",
               class = "cell-border stripe",
+              rownames = FALSE,
               options = list(searching = TRUE,
                              pageLength = 20))
 
@@ -614,9 +744,12 @@ t1y <- data.table(table(tmp1y$major))
 t1y$Percent <- round(100*t1y$N/sum(t1y$N), 1)
 t1y <- t1y[order(t1y$N,
                  decreasing = TRUE),]
+t1y$N <- format(t1y$N,
+                big.mark = ",")
 DT::datatable(t1y,
               caption = "1-Year Readmissions by Cause (DX1)",
               class = "cell-border stripe",
+              rownames = FALSE,
               options = list(searching = TRUE,
                              pageLength = 20))
 ```
@@ -640,7 +773,7 @@ p1 <- ggplot(case[ , "los"],
 p1
 ```
 
-**NOTE***: 3,433  patients were discharged at the day of admission. this ight include transfers to other hospitals but we did not look at transfers.
+**NOTE***: 3,433  patients were discharged at the day of admission. This might include transfers to other hospitals but we did not look at transfers.
 
 # Part III: Logistic Regression Models
 ```{r labels}
@@ -1623,9 +1756,13 @@ table1app <- data.table(Comorbidity = c("AFib/AFlutter",
                                         "Parkinson",
                                         "Stroke",
                                         "TIA",
-                                        "Cancer"),
-                        Variable = table1app$Comorbidity,
-                        ICD9 = table1app$`ICD-9.V1`)
+                                        "Cancer",
+                                        "HIV"),
+                        Variable = c(table1app$Comorbidity,
+                                     "hiv"),
+                        ICD9 = c(table1app$`ICD-9.V1`,
+                                 "042"))
+table1app <- table1app[order(table1app$Comorbidity), ]
 
 # # Save Table1 Appendix as CSV
 # write.csv(table1app,
@@ -1670,17 +1807,17 @@ DT::datatable(t2,
 
 ## Abbreviations
 ```{r abbreviations}
-abbv <- data.table(Abbreviation = c("AMI",
-                                    "HF"),
-                   Description = c("Acute myocardial infarction",
-                                   "Heart failure"))
-setkey(abbv, 
-       Abbreviation)
-DT::datatable(abbv,
-              caption = "Appendix Table 3: abbreviations",
-              class = "cell-border stripe",
-              options = list(searching = TRUE,
-                             pageLength = nrow(t1)))
+# abbv <- data.table(Abbreviation = c("AMI",
+#                                     "HF"),
+#                    Description = c("Acute myocardial infarction",
+#                                    "Heart failure"))
+# setkey(abbv, 
+#        Abbreviation)
+# DT::datatable(abbv,
+#               caption = "Appendix Table 3: abbreviations",
+#               class = "cell-border stripe",
+#               options = list(searching = TRUE,
+#                              pageLength = nrow(t1)))
 ```
 
 

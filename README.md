@@ -1,4 +1,4 @@
-##  Project: Readmission or Death After First HF Discharge   
+##  Project: Cardiovascular Outcomes in Heart Failure Patients 
 ### Principal Investigator: Michail Giakoumis
 ### Coordinator: Nora Cosgrove
 ### Statistician: Davit Sargsyan
@@ -14,6 +14,9 @@
 [References](#ref)   
 
 ## Daily Log<a name="log"></a>
+### 06/07/2019
+* Added linear models for trends.
+
 ### 05/31/2019
 * Added age-by-year and tables ICD-9/ICD-10 codes defining comorbidities and cause of death.    
 * Mike finished AHA2019 abstract.
