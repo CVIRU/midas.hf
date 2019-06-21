@@ -140,13 +140,14 @@ p0
 **NOTE**: the higher number of patients in the early years could be due to censored records containing prior HF; hence, more patients remained. Also, we needed at least one year follow-up for all patients; hence, we restricted records to 2000-2014 interval.
 
 # Plot of number of new HF patients form 2000 to 2014
-```{r hf_discharges_plot_2000_2014, fig.height = 5, fig.width = 8}
+```{r hf_discharges_plot_2000_2014, fig.height = 5, fig.width = 6}
 t2 <- t1[Year > 1999 &
                   Year < 2015, ]
 # Plot HF discharges----
 p0 <- ggplot(t2,
              aes(x = Year,
                  y = Counts)) +
+  geom_smooth(method = "lm") +
   geom_line(size = 1) +
   geom_point(size = 3,
              shape = 21,
@@ -165,7 +166,21 @@ p0 <- ggplot(t2,
   theme(axis.text.x = element_text(angle = 45,
                                    hjust = 1),
         plot.title = element_text(hjust = 0))
-p0
+
+# Save for publication
+pp0 <- p0 +
+  ggtitle("") +
+  theme(legend.position = "none")
+tiff(filename = "tmp/fig1.tiff",
+     height = 5,
+     width = 6,
+     units = "in",
+     res = 600,
+     compression = "lzw+p")
+print(pp0)
+graphics.off()
+
+print(p0)
 
 # Linear trend
 t2$years <- t2$Year - 2000
@@ -326,7 +341,7 @@ DT::datatable(table1,
 ```  
 
 # Part II: Rates
-## All_Cause Readmissions
+## All-Cause Readmissions
 ```{r rates_all_cause_readm}
 invisible({
   # 30 days----
@@ -640,6 +655,8 @@ p1 <- ggplot(data = out,
   facet_wrap(~ endpoint,
              nrow = 2,
              scales = "free_y") +
+  geom_smooth(method = "lm",
+              alpha = 0.5) +
   geom_line(size = 0.5) +
   geom_point(size = 2,
              shape = 21) +
@@ -657,21 +674,24 @@ p1 <- ggplot(data = out,
                     values = unique(out$followup)) +
   guides(fill = guide_legend(title = "Follow-up")) +
   theme(legend.position = "top",
-        axis.text.x = element_text(angle = 90,
-                                   hjust = 0),
+        axis.text.x = element_text(angle = 45,
+                                   hjust = 1),
         plot.title = element_text(hjust = 0))
 
-# # Saveas TIFF
-# tiff(filename = "figure1_rates.tiff",
-#      height = 5,
-#      width = 12,
-#      units = 'in',
-#      res = 300,
-#      compression = "lzw+p")
-# print(p1)
-# graphics.off()
+# Save for publication
+p2 <- p1 +
+  ggtitle("") +
+  theme(legend.position = "none")
+tiff(filename = "tmp/fig2.tiff",
+     height = 6,
+     width = 7,
+     units = "in",
+     res = 600,
+     compression = "lzw+p")
+print(p2)
+graphics.off()
 
-p1
+print(p1)
 ```
 
 ```{r rates_1y_trends}
@@ -702,6 +722,7 @@ tmp <- case[readm == TRUE,
 tmp <- merge(map,
              tmp,
              by = "readm.dx1")
+readm_cause <- copy(tmp)
 
 tmp30 <- tmp[days2readm < 31, ]
 t30 <- data.table(table(tmp30$major))
@@ -774,6 +795,12 @@ p1
 ```
 
 **NOTE***: 3,433  patients were discharged at the day of admission. This might include transfers to other hospitals but we did not look at transfers.
+
+```{r readm_reason_grp}
+dt1 <- fread("data/HF readmissions by cause.csv",
+             header = TRUE)
+dt1
+```
 
 # Part III: Logistic Regression Models
 ```{r labels}
@@ -1045,15 +1072,18 @@ p2a <- ggplot(t2a,
         plot.title = element_text(hjust = 0.5)) +
   guides(fill = guide_legend("Risk Factors Legend"))
 
-# # Save Figure2A as TIFF
-# tiff(filename = "tmp/figure2a_all_readm_or.tiff",
-#      height = 5,
-#      width = 11,
-#      units = 'in',
-#      res = 300,
-#      compression = "lzw+p")
-# print(p2a)
-# graphics.off()
+# Save for publication
+ppp2a <- p2a +
+  ggtitle("") +
+  theme(legend.position = "none")
+tiff(filename = "tmp/fig3.tiff",
+     height = 6,
+     width = 10,
+     units = "in",
+     res = 600,
+     compression = "lzw+p")
+print(ppp2a)
+graphics.off()
 
 print(p2a)
 ```
@@ -1263,15 +1293,18 @@ p2b <- ggplot(t2b,
         plot.title = element_text(hjust = 0.5)) +
   guides(fill = guide_legend("Risk Factors Legend"))
 
-# # Save Figure2B as TIFF
-# tiff(filename = "tmp/figure2b_hf_readm_or.tiff",
-#      height = 5,
-#      width = 11,
-#      units = 'in',
-#      res = 300,
-#      compression = "lzw+p")
-# print(p2b)
-# graphics.off()
+# Save for publication
+ppp2b <- p2b +
+  ggtitle("") +
+  theme(legend.position = "none")
+tiff(filename = "tmp/fig4.tiff",
+     height = 6,
+     width = 10,
+     units = "in",
+     res = 600,
+     compression = "lzw+p")
+print(ppp2b)
+graphics.off()
 
 print(p2b)
 ```
@@ -1481,15 +1514,18 @@ p2c <- ggplot(t2c,
         plot.title = element_text(hjust = 0.5)) +
   guides(fill = guide_legend("Risk Factors Legend"))
 
-# # Save Figure2C as TIFF
-# tiff(filename = "tmp/figure2c_all_death_or.tiff",
-#      height = 5,
-#      width = 11,
-#      units = 'in',
-#      res = 300,
-#      compression = "lzw+p")
-# print(p2c)
-# graphics.off()
+# Save for publication
+ppp2c <- p2c +
+  ggtitle("") +
+  theme(legend.position = "none")
+tiff(filename = "tmp/fig5.tiff",
+     height = 6,
+     width = 10,
+     units = "in",
+     res = 600,
+     compression = "lzw+p")
+print(ppp2c)
+graphics.off()
 
 print(p2c)
 ```
@@ -1699,17 +1735,52 @@ p2d <- ggplot(t2d,
         plot.title = element_text(hjust = 0.5)) +
   guides(fill = guide_legend("Risk Factors Legend"))
 
-# # Save Figure2D as TIFF
-# tiff(filename = "tmp/figure2d_cv_death_or.tiff",
-#      height = 5,
-#      width = 11,
-#      units = 'in',
-#      res = 300,
-#      compression = "lzw+p")
-# print(p2d)
-# graphics.off()
+# Save for publication
+ppp2d <- p2d +
+  ggtitle("") +
+  theme(legend.position = "none")
+tiff(filename = "tmp/fig6.tiff",
+     height = 6,
+     width = 10,
+     units = "in",
+     res = 600,
+     compression = "lzw+p")
+print(ppp2d)
+graphics.off()
 
 p2d
+```
+
+# Additional Analysis: effect of readmission for specific reason
+```{r readm_cause_grp}
+readm_grp <- fread("data/HF readmissions by cause.csv")
+
+readm_grp <- merge(readm_grp,
+                   readm_cause,
+                   by = "major")
+readm_grp <- readm_grp[, c("Patient_ID",
+                           "group")]
+table(readm_grp$group)
+
+case1 <- merge(case, 
+               readm_grp,
+               by = "Patient_ID",
+               all.x = TRUE)
+case1$group[is.na(case1$group)] <- "Other Reason"
+case1$group[case1$days2readm > 365] <- "Not Readmitted"
+table(case1$group)
+
+case$dead1y[case$days2death < 366] <- TRUE
+case1$group <- factor(case1$group,
+                      levels = c("Not Readmitted",
+                                 unique(case1$group)[-5]))
+mm1.1y <- glm(dead1y ~ group,
+              family = binomial(logit),
+              data = case1)
+
+# Combine
+ss1 <- (summary(mm1.1y))
+ss1
 ```
 
 # Appendix

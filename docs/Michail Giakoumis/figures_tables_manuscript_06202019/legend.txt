@@ -1,0 +1,21 @@
+Figures:
+Figure 1(fig1): number of new HF cases (discharges) between 2000 and 2014. Blue line with gray band represents significant linear trend (slope = -155.6, p-value < 0.0010 with a 95% C.I.
+Figure 2(fig2): percent events over time, with fitted linear trends and 95% C.I. bands. Black lines correspond to 30-day follow-up, reds to 90-day, greens to 180-day and blue lines to the 1-year.
+Figure 3(fig3): odds ratios of all-cause readmission. Legend: A = discharge year, B = age (x10), ..., NA = teaching hospital
+
+Optional figures:
+Figure 4(fig4): odds ratios of HF readmission. Legend: A = discharge year, B = age (x10), ..., NA = teaching hospital
+Figure 5(fig5): odds ratios of all-cause death. Legend: A = discharge year, B = age (x10), ..., NA = teaching hospital
+Figure 6(fig6): odds ratios of CV death. Legend: A = discharge year, B = age (x10), ..., NA = teaching hospital
+
+Tables:
+Table 1(tab1): number of new HF cases (discharges) between 2000 and 2014 and their mean age
+NOTE: removed years prior to 2000 and year 2015!
+Table 2(tab20: HF patient and admission hospital characteristics
+Table 3a(tab3abcd): all-cause readmissions over time (%)
+Table 3b(tab3abcd): HF readmissions over time (%)
+Table 3c(tab3abcd): all-cause mortality over time (%)
+Table 3d(tab3abcd): CV mortality over time (%)
+Table 4a, b, c & d(tab4abcd): odds ratios of events by covariates
+table 5(tab5): top 21(?) causes for readmission within 1 year after the first HF discharge
+Table 6: causes of readmission aggregated by disease group

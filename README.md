@@ -14,6 +14,11 @@
 [References](#ref)   
 
 ## Daily Log<a name="log"></a>
+### 06/20/2019
+* Dr. Kostis' requests    
+1. Redraw Figures 1 (number of new HF patients over time), 2 (number of events at fiollow-up over time) and 3 (odds ratios, full models) to TIFF; remove plot titles and legends.    
+2. Add a table and a figure for all-cause mortality in patients who were readmitted vs. not readmitted.
+
 ### 06/07/2019
 * Added linear models for trends.
 
