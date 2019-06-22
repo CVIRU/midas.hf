@@ -14,6 +14,10 @@
 [References](#ref)   
 
 ## Daily Log<a name="log"></a>
+### 06/22/2019
+* Added number of deaths within 2 years from the initial HF discharge, a table and a plot.     
+* Added unadjusted and adjusted models for 1-year all-cause readmission vs. 2-year all-cause death.
+
 ### 06/21/2019
 * Added readmission type vs. 1-year all-cause mortality analysis
 

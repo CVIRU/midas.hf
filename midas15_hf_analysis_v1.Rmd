@@ -77,10 +77,10 @@ case$Area <- factor(case$Area,
 
 case$Teach[is.na(case$Teach)] <- -1
 case$Teach <- factor(case$Teach,
-                    levels = rev((-1):1),
-                    labels = c("Teaching",
-                               "Non-Teaching",
-                               "Unknown"))
+                     levels = rev((-1):1),
+                     labels = c("Teaching",
+                                "Non-Teaching",
+                                "Unknown"))
 ```
 
 `r paste("Number of case =", format(nrow(case), big.mark = ","))`
@@ -103,17 +103,16 @@ t1 <- merge(t1,
             dt.age,
             by = "Year")
 
-DT::datatable(t1,
-              caption = "Table 1: Number of first HF discharges by year",
-              rownames = FALSE,
-              class = "cell-border stripe",
-              options = list(searching = TRUE,
-                             pageLength = nrow(t1)))
+datatable(t1,
+          caption = "Table 1: Number of first HF discharges by year",
+          rownames = FALSE,
+          class = "cell-border stripe",
+          options = list(searching = TRUE,
+                         pageLength = nrow(t1)))
 ```
 
 # Plot of number of new HF patients form 1995 to 2015
 ```{r hf_discharges_plot, fig.height = 5, fig.width = 8}
-# Plot HF discharges----
 p0 <- ggplot(t1,
              aes(x = Year,
                  y = Counts)) +
@@ -142,7 +141,7 @@ p0
 # Plot of number of new HF patients form 2000 to 2014
 ```{r hf_discharges_plot_2000_2014, fig.height = 5, fig.width = 6}
 t2 <- t1[Year > 1999 &
-                  Year < 2015, ]
+           Year < 2015, ]
 # Plot HF discharges----
 p0 <- ggplot(t2,
              aes(x = Year,
@@ -332,12 +331,12 @@ table1 <- data.table(Description = c("Mean Age at First AMI Admission +/- S.D",
 write.csv(table1,
           file = "tmp/table1.csv")
 
-DT::datatable(table1,
-              caption = "Table 2: HF pateints' characteristics",
-              rownames = FALSE,
-              class = "cell-border stripe",
-              options = list(searching = TRUE,
-                             pageLength = nrow(table1)))
+datatable(table1,
+          caption = "Table 2: HF pateints' characteristics",
+          rownames = FALSE,
+          class = "cell-border stripe",
+          options = list(searching = TRUE,
+                         pageLength = nrow(table1)))
 ```  
 
 # Part II: Rates
@@ -393,13 +392,12 @@ colnames(t1a.apx) <- c("HF Discharge Year",
                        "90-Day",
                        "180-Day",
                        "1-Year")
-print(DT::datatable(t1a.apx,
-                    caption = "Table 3a: all-cause readmissions (%)",
-                    rownames = FALSE,
-                    
-                    class = "cell-border stripe",
-                    options = list(searching = TRUE,
-                                   pageLength = nrow(t1a.apx))))
+datatable(t1a.apx,
+          caption = "Table 3a: all-cause readmissions (%)",
+          rownames = FALSE,
+          class = "cell-border stripe",
+          options = list(searching = TRUE,
+                         pageLength = nrow(t1a.apx)))
 ```
   
 ## HF Readmissions
@@ -453,13 +451,12 @@ colnames(t1b.apx) <- c("HF Discharge Year",
                        "90-Day",
                        "180-Day",
                        "1-Year")
-print(DT::datatable(t1b.apx,
-                    caption = "Table 3b: HF readmissions (%)",
-                    rownames = FALSE,
-                    
-                    class = "cell-border stripe",
-                    options = list(searching = TRUE,
-                                   pageLength = nrow(t1b.apx))))
+datatable(t1b.apx,
+          caption = "Table 3b: HF readmissions (%)",
+          rownames = FALSE,
+          class = "cell-border stripe",
+          options = list(searching = TRUE,
+                         pageLength = nrow(t1b.apx)))
 ```
 
 ## All-Cause Death
@@ -513,13 +510,12 @@ colnames(t1c.apx) <- c("HF Discharge Year",
                        "90-Day",
                        "180-Day",
                        "1-Year")
-print(DT::datatable(t1c.apx,
-                    caption = "Table 3c: all-cause death (%)",
-                    rownames = FALSE,
-                    
-                    class = "cell-border stripe",
-                    options = list(searching = TRUE,
-                                   pageLength = nrow(t1c.apx))))
+datatable(t1c.apx,
+          caption = "Table 3c: all-cause death (%)",
+          rownames = FALSE,
+          class = "cell-border stripe",
+          options = list(searching = TRUE,
+                         pageLength = nrow(t1c.apx)))
 ```
 
 ## CV Death
@@ -573,16 +569,15 @@ colnames(t1d.apx) <- c("HF Discharge Year",
                        "90-Day",
                        "180-Day",
                        "1-Year")
-print(DT::datatable(t1d.apx,
-                    caption = "Table 3d: CV death (%)",
-                    rownames = FALSE,
-                    
-                    class = "cell-border stripe",
-                    options = list(searching = TRUE,
-                                   pageLength = nrow(t1d.apx))))
+datatable(t1d.apx,
+          caption = "Table 3d: CV death (%)",
+          rownames = FALSE,
+          class = "cell-border stripe",
+          options = list(searching = TRUE,
+                         pageLength = nrow(t1d.apx)))
 ```
 
-```{r rates_plot, fig.width = 8, fig.height = 7}
+```{r rates_plot, fig.height = 6, fig.width = 7,} 
 # Save the table as CSV
 table1.apx <- cbind.data.frame(t1a.apx,
                                t1b.apx[, -1],
@@ -622,9 +617,9 @@ t1.apx <- list(t1a.apx[-16, ],
                t1d.apx[-16, ])
 
 names(t1.apx) <- c("All-Cause Readmissions (%)",
-                      "HF Readmissions (%)", 
-                      "All-Cause Death (%)",
-                      "CV Death (%)")
+                   "HF Readmissions (%)", 
+                   "All-Cause Death (%)",
+                   "CV Death (%)")
 
 out <- list()
 for (i in 1:length(t1.apx)) {
@@ -713,7 +708,7 @@ source("source/icd9_dx_get_data_v1.R")
 dt.icd <- icd9cm_merge_version_dx(32)
 
 map <- unique(data.table(readm.dx1 = dt.icd$code,
-              major = dt.icd$major))
+                         major = dt.icd$major))
 
 tmp <- case[readm == TRUE, 
             c("Patient_ID",
@@ -729,36 +724,42 @@ t30 <- data.table(table(tmp30$major))
 t30$Percent <- round(100*t30$N/sum(t30$N), 1)
 t30 <- t30[order(t30$N,
                  decreasing = TRUE),]
-DT::datatable(t30,
-              caption = "30-Day Readmissions by Cause (DX1)",
-              class = "cell-border stripe",
-              rownames = FALSE,
-              options = list(searching = TRUE,
-                             pageLength = 20))
+t30$N <- format(t30$N,
+                big.mark = ",")
+datatable(t30,
+          caption = "30-Day Readmissions by Cause (DX1)",
+          class = "cell-border stripe",
+          rownames = FALSE,
+          options = list(searching = TRUE,
+                         pageLength = 20))
 
 tmp90<- tmp[days2readm < 91, ]
 t90 <- data.table(table(tmp90$major))
 t90$Percent <- round(100*t90$N/sum(t90$N), 1)
 t90 <- t90[order(t90$N,
                  decreasing = TRUE),]
-DT::datatable(t90,
-              caption = "90-Day Readmissions by Cause (DX1)",
-              class = "cell-border stripe",
-              rownames = FALSE,
-              options = list(searching = TRUE,
-                             pageLength = 20))
+t90$N <- format(t90$N,
+                big.mark = ",")
+datatable(t90,
+          caption = "90-Day Readmissions by Cause (DX1)",
+          class = "cell-border stripe",
+          rownames = FALSE,
+          options = list(searching = TRUE,
+                         pageLength = 20))
 
 tmp180 <- tmp[days2readm < 181, ]
 t180 <- data.table(table(tmp180$major))
 t180$Percent <- round(100*t180$N/sum(t180$N), 1)
 t180 <- t180[order(t180$N,
-                 decreasing = TRUE),]
-DT::datatable(t180,
-              caption = "180-Day Readmissions by Cause (DX1)",
-              class = "cell-border stripe",
-              rownames = FALSE,
-              options = list(searching = TRUE,
-                             pageLength = 20))
+                   decreasing = TRUE),]
+t180$N <- format(t180$N,
+                 big.mark = ",")
+datatable(t180,
+          caption = "180-Day Readmissions by Cause (DX1)",
+          class = "cell-border stripe",
+          rownames = FALSE,
+          options = list(searching = TRUE,
+                         pageLength = 20))
 
 tmp1y <- tmp[days2readm < 366, ]
 t1y <- data.table(table(tmp1y$major))
@@ -767,16 +768,16 @@ t1y <- t1y[order(t1y$N,
                  decreasing = TRUE),]
 t1y$N <- format(t1y$N,
                 big.mark = ",")
-DT::datatable(t1y,
-              caption = "1-Year Readmissions by Cause (DX1)",
-              class = "cell-border stripe",
-              rownames = FALSE,
-              options = list(searching = TRUE,
-                             pageLength = 20))
+datatable(t1y,
+          caption = "1-Year Readmissions by Cause (DX1)",
+          class = "cell-border stripe",
+          rownames = FALSE,
+          options = list(searching = TRUE,
+                         pageLength = 20))
 ```
 
 # Length of Stay
-```{r length_of_stay}
+```{r length_of_stay, warning=FALSE}
 # Length of stay
 case$los <- as.numeric(difftime(case$DSCHDAT,
                      case$ADMDAT,
@@ -827,7 +828,7 @@ t2.names <- c("Discharge year",
               "Hosp Suburb Area vs. Urban",
               # "Hosp Unknown Area vs. Urban",
               "Hosp Non-Teaching vs. Teaching")
-              # "Hosp Unknown vs. Teaching")
+# "Hosp Unknown vs. Teaching")
 
 # Discharge year as numeric
 case$DSCYR <- as.numeric(case$DSCYR)
@@ -1028,11 +1029,12 @@ write.csv(table2a,
           file = "tmp/table2a.csv",
           row.names = FALSE)
 
-DT::datatable(table2a,
-              caption = "Table2A: All-Cause Readmissions",
-              rownames = FALSE,
-              options = list(searching = TRUE,
-                             pageLength = nrow(table2a)))
+datatable(table2a,
+          caption = "Table2A: All-Cause Readmissions",
+          class = "cell-border stripe",
+          rownames = FALSE,
+          options = list(searching = TRUE,
+                         pageLength = nrow(table2a)))
 
 # Plot OR----
 p2a <- ggplot(t2a,
@@ -1072,11 +1074,11 @@ p2a <- ggplot(t2a,
 
 # Save for publication
 ppp2a <- p2a +
-  ggtitle("") +
-  theme(legend.position = "none")
+  ggtitle("")
+# theme(legend.position = "none")
 tiff(filename = "tmp/fig3.tiff",
-     height = 6,
-     width = 10,
+     height = 5,
+     width = 15,
      units = "in",
      res = 600,
      compression = "lzw+p")
@@ -1251,11 +1253,12 @@ write.csv(table2b,
           file = "tmp/table2b.csv",
           row.names = FALSE)
 
-DT::datatable(table2b,
-              caption = "Table2B: All-Cause Readmissions",
-              rownames = FALSE,
-              options = list(searching = TRUE,
-                             pageLength = nrow(table2b)))
+datatable(table2b,
+          caption = "Table2B: All-Cause Readmissions",
+          class = "cell-border stripe",
+          rownames = FALSE,
+          options = list(searching = TRUE,
+                         pageLength = nrow(table2b)))
 
 # Plot OR----
 p2b <- ggplot(t2b,
@@ -1297,7 +1300,7 @@ p2b <- ggplot(t2b,
 ppp2b <- p2b +
   ggtitle("") +
   theme(legend.position = "none")
-tiff(filename = "tmp/fig5.tiff",
+tiff(filename = "tmp/fig6.tiff",
      height = 6,
      width = 10,
      units = "in",
@@ -1369,27 +1372,27 @@ m2c.90 <- glm(dead90 ~ DSCYR +
               data = case)
 
 m2c.180 <- glm(dead180 ~ DSCYR +
-                decade +
-                SEX +
-                RACE +
-                HISPAN +
-                PRIME +
-                los +
-                haf +
-                hami +
-                hanemia  +
-                hckd +
-                hcopd +
-                hdiab +
-                hhyper +
-                hlipid  +
-                hosa +
-                hpark +
-                hstroke  +
-                htia +
-                CLAB +
-                Area +
-                Teach,
+                 decade +
+                 SEX +
+                 RACE +
+                 HISPAN +
+                 PRIME +
+                 los +
+                 haf +
+                 hami +
+                 hanemia  +
+                 hckd +
+                 hcopd +
+                 hdiab +
+                 hhyper +
+                 hlipid  +
+                 hosa +
+                 hpark +
+                 hstroke  +
+                 htia +
+                 CLAB +
+                 Area +
+                 Teach,
                family = binomial(logit),
                data = case)
 
@@ -1474,11 +1477,12 @@ write.csv(table2c,
           file = "tmp/table2c.csv",
           row.names = FALSE)
 
-DT::datatable(table2c,
-              caption = "Table2C: All-Cause Death",
-              rownames = FALSE,
-              options = list(searching = TRUE,
-                             pageLength = nrow(table2c)))
+datatable(table2c,
+          caption = "Table2C: All-Cause Death",
+          class = "cell-border stripe",
+          rownames = FALSE,
+          options = list(searching = TRUE,
+                         pageLength = nrow(table2c)))
 
 # Plot OR----
 p2c <- ggplot(t2c,
@@ -1520,7 +1524,7 @@ p2c <- ggplot(t2c,
 ppp2c <- p2c +
   ggtitle("") +
   theme(legend.position = "none")
-tiff(filename = "tmp/fig6.tiff",
+tiff(filename = "tmp/fig7.tiff",
      height = 6,
      width = 10,
      units = "in",
@@ -1592,27 +1596,27 @@ m2d.90 <- glm(cvdeath90 ~ DSCYR +
               data = case)
 
 m2d.180 <- glm(cvdeath180 ~ DSCYR +
-                decade +
-                SEX +
-                RACE +
-                HISPAN +
-                PRIME +
-                los +
-                haf +
-                hami +
-                hanemia  +
-                hckd +
-                hcopd +
-                hdiab +
-                hhyper +
-                hlipid  +
-                hosa +
-                hpark +
-                hstroke  +
-                htia +
-                CLAB +
-                Area +
-                Teach,
+                 decade +
+                 SEX +
+                 RACE +
+                 HISPAN +
+                 PRIME +
+                 los +
+                 haf +
+                 hami +
+                 hanemia  +
+                 hckd +
+                 hcopd +
+                 hdiab +
+                 hhyper +
+                 hlipid  +
+                 hosa +
+                 hpark +
+                 hstroke  +
+                 htia +
+                 CLAB +
+                 Area +
+                 Teach,
                family = binomial(logit),
                data = case)
 
@@ -1697,11 +1701,12 @@ write.csv(table2d,
           file = "tmp/table2d.csv",
           row.names = FALSE)
 
-DT::datatable(table2d,
-              caption = "Table2D: CV Death",
-              rownames = FALSE,
-              options = list(searching = TRUE,
-                             pageLength = nrow(table2d)))
+datatable(table2d,
+          caption = "Table2D: CV Death",
+          class = "cell-border stripe",
+          rownames = FALSE,
+          options = list(searching = TRUE,
+                         pageLength = nrow(table2d)))
 
 # Plot OR----
 p2d <- ggplot(t2d,
@@ -1743,7 +1748,7 @@ p2d <- ggplot(t2d,
 ppp2d <- p2d +
   ggtitle("") +
   theme(legend.position = "none")
-tiff(filename = "tmp/fig7.tiff",
+tiff(filename = "tmp/fig8.tiff",
      height = 6,
      width = 10,
      units = "in",
@@ -1755,23 +1760,18 @@ graphics.off()
 p2d
 ```
 
-# Additional Analysis: Effect of Readmission for Specific Reason on 1-Year All-Cause Mortality
+# Association of 1-Year Readmission with 2-Year All-Cause Mortality
+## Reasons for readmission
+The top 21 reasons for admission were groupped into the following categories:
 ```{r readm_cause_grp, fig.height=6, fig.width=6}
-nrow(tmp1y)
-# 49,224
-
+# Readmission causes, groupped by Mike and Dr. Kostis
 readm_grp <- fread("data/HF readmissions by cause.csv")
-datatable(readm_grp,
-          options = list(pageLength = nrow(readm_grp)))
 
 readm1y <- merge(readm_grp,
                  tmp1y,
                  by = "major")
 readm1y$days2readm <- NULL
 readm1y$readm.dx1 <- NULL
-
-case1$dead1y <- FALSE
-case1$dead1y[case1$days2death < 366] <- TRUE
 
 case2 <- merge(case1, 
                readm1y,
@@ -1796,54 +1796,247 @@ case2$group <- factor(case2$group,
                                  "Cerebrovascular",
                                  "Other Reason"))
 
-case2$dead1y[case2$days2death < 366] <- TRUE
-case2$dead1y[is.na(case2$dead1y)] <- FALSE
+case2$readm1y <- case2$group != "Not Readmitted"
 
-tab7 <- addmargins(table(case2$group,
-                         case2$dead1y))
+# All-cause death within 2 years
+case2$dead2y <- FALSE
+case2$dead2y[case2$days2death < 2*365.25] <- TRUE
 
-tab7b <- data.table(Reason = rownames(tab7),
-                    Alive = format(tab7[, 1],
-                                   big.mark = ","),
-                    Alive_Pct = round(100*tab7[, 1]/tab7[, 3], 1),
-                    Dead = format(tab7[, 2],
+datatable(readm_grp,
+          caption = "Table: grouping of reasons for redmission",
+          class = "cell-border stripe",
+          rownames = FALSE,
+          options = list(searching = TRUE,
+                         pageLength = nrow(readm_grp)))
+```
+
+## 2-year all-cause mortality vs. 1-year readmission, unadjusted logistic model
+```{r death2y_readm1y_unadj}
+mm1.2y <- glm(dead2y ~ readm1y,
+              family = binomial(logit),
+              data = case2)
+ss1 <-summary(mm1.2y)
+
+out1 <- data.table(names = "Readmitted within 1 year",
+                   coef = round(exp(ss1$coefficients[-1, 1]), 3),
+                   lb = round(exp(ss1$coefficients[-1, 1] - 1.96*ss1$coefficients[-1, 2]), 3),
+                   ub = round(exp(ss1$coefficients[-1, 1] + 1.96*ss1$coefficients[-1, 2]), 3),
+                   pval = ifelse(ss1$coefficients[-1, 4] >= 0.001,
+                                 round(ss1$coefficients[-1, 4], 3),
+                                 "<0.001"),
+                   sign = ifelse(ss1$coefficients[-1, 4] <= 0.05,
+                                 ifelse(ss1$coefficients[-1, 4] <= 0.01,
+                                        "**",
+                                        "*"), ""))
+datatable(out1)
+```
+Risk of death within 2 years from initial HF discharge was significantly higher in patients who were readmitted for any cause within 1 year from the said discharge (OR = 1.54, 95% C.I. = 1.49 to 1.59, p-value < 0.001).
+
+## 2-year all-cause death vs. 1-year readmission, adjusted for all covariates
+```{r death2y_readm1y_adj}
+# Remove patients from hosps with no info
+tmp <- droplevels(case2[Area != "Unknown", ])
+# 3,353 patients with no info about the admission hospital were removed; 89,893 remained
+
+mm2.2y <- glm(dead2y ~ readm1y +
+                DSCYR +
+                decade +
+                SEX +
+                RACE +
+                HISPAN +
+                PRIME +
+                los +
+                haf +
+                hami +
+                hanemia  +
+                hckd +
+                hcopd +
+                hdiab +
+                hhyper +
+                hlipid  +
+                hosa +
+                hpark +
+                hstroke  +
+                htia +
+                CLAB +
+                Area +
+                Teach,
+              family = binomial(logit),
+              data = tmp)
+ss1 <-summary(mm2.2y)
+
+out2 <- data.table(names = c("All-Cause Readmitted within 1 Year",
+                             t2.names),
+                   coef = round(exp(ss1$coefficients[-1, 1]), 3),
+                   lb = round(exp(ss1$coefficients[-1, 1] - 1.96*ss1$coefficients[-1, 2]), 3),
+                   ub = round(exp(ss1$coefficients[-1, 1] + 1.96*ss1$coefficients[-1, 2]), 3),
+                   pval = ifelse(ss1$coefficients[-1, 4] >= 0.001,
+                                 round(ss1$coefficients[-1, 4], 3),
+                                 "<0.001"),
+                   sign = ifelse(ss1$coefficients[-1, 4] <= 0.05,
+                                 ifelse(ss1$coefficients[-1, 4] <= 0.01,
+                                        "**",
+                                        "*"), ""))
+datatable(out2,
+          caption = "Table: 2-year mortality vs. 1-year readmissions, adjusted model",
+          class = "cell-border stripe",
+          rownames = FALSE,
+          options = list(searching = TRUE,
+                         pageLength = nrow(out2)))
+```
+
+The 2-year risk of death remained significantly higher in patients who were readmitted for any cause within 1 year from the said discharge after adjusting for all covariates (OR = 1.50, 95% C.I. = 1.46 to 1.55, p-value < 0.001).
+
+## 2-year mortality
+```{r death2y_vs_readm1y}
+t7 <- addmargins(table(case2$group,
+                        case2$dead2y))
+
+tab7 <- data.table(Reason = rownames(t7),
+                   Alive = format(t7[, 1],
                                   big.mark = ","),
-                    Dead_Pct = round(100*tab7[, 2]/tab7[, 3], 1),
-                    Total = format(tab7[, 3],
-                                     big.mark = ","))
+                   Alive_Pct = round(100*t7[, 1]/t7[, 3], 1),
+                   Dead = format(t7[, 2],
+                                 big.mark = ","),
+                   Dead_Pct = round(100*t7[, 2]/t7[, 3], 1),
+                   Total = format(t7[, 3],
+                                  big.mark = ","))
 
-datatable(tab7b,
-          options = list(pageLength = nrow(tab7b)))
+datatable(tab7,
+          caption = "Table: number and percent dead in 2 years",
+          class = "cell-border stripe",
+          rownames = FALSE,
+          options = list(searching = TRUE,
+                         pageLength = nrow(table2d)))
+```
 
+```{r death2y_vs_readm1y_plot, fig.height = 6,fig.width = 8}
+tab7$Alive <- t7[, 1]
+tab7$Dead <- t7[, 2]
 
-mm1.1y <- glm(dead1y ~ group,
+stts <- melt.data.table(data = tab7,
+                        id.vars = 1,
+                        measure.vars = c(2, 4),
+                        variable.name = "2-Year Status",
+                        value.name = "N")
+tmp <- melt.data.table(data = tab7,
+                       id.vars = 1,
+                       measure.vars = c(3, 5),
+                       variable.name = "2-Year Status",
+                       value.name = "Percent")
+tmp$`2-Year Status` <- gsub(pattern = "_Pct",
+                            replacement = "",
+                            x = tmp$`2-Year Status`)
+stts <- merge(stts, 
+              tmp,
+              by = c("Reason",
+                     "2-Year Status"))
+stts$`2-Year Status` <- factor(stts$`2-Year Status`,
+                               levels = c("Dead",
+                                          "Alive"))
+stts <- droplevels(stts[!(Reason %in% c("Not Readmitted",
+                                        "Sum"))])
+stts$Reason <- factor(stts$Reason,
+                      levels = c("Other Reason",
+                                 "Cerebrovascular",
+                                 "Procedures",
+                                 "Diabetes mellitus",
+                                 "Hypertension",
+                                 "General symptoms",
+                                 "Infections",
+                                 "Kidney Disease",
+                                 "Arrhythmia",
+                                 "Respiratory",
+                                 "Heart Disease",
+                                 "Heart failure"))
+
+p1 <- ggplot(stts,
+             aes(x = Reason,
+                 y = N,
+                 group = `2-Year Status`,
+                 fill = `2-Year Status`)) +
+  coord_flip() +
+  geom_bar(stat = "identity",
+           position = position_dodge(0.9)) +
+  scale_x_discrete("Reason for Readmission") +
+  scale_y_continuous("Number of Patients",
+                     breaks = seq(0, 12000, by = 1000)) +
+  scale_fill_discrete("Status") +
+  geom_text(aes(x = Reason,
+                y = N + 1500,
+                angle = 0,
+                label = paste(Percent,
+                              "%",
+                              sep = "")),
+            hjust = 1,
+            size = 4,
+            position = position_dodge(0.9)) +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1))
+
+tiff(filename = "tmp/fig5.tiff",
+     height = 6,
+     width = 8,
+     units = "in",
+     res = 600,
+     compression = "lzw+p")
+print(p1)
+graphics.off()
+
+print(p1)
+```
+
+## Odds ratios of 2-year all-cause death by reason for readmission
+```{r death2y_vs_readm1y_reason, fig.height = 5, fig.width = 5}
+lvls <- c("Not Readmitted",
+          "Other Reason",
+          "Cerebrovascular",
+          "Procedures",
+          "Diabetes mellitus",
+          "Hypertension",
+          "General symptoms",
+          "Infections",
+          "Kidney Disease",
+          "Arrhythmia",
+          "Respiratory",
+          "Heart Disease",
+          "Heart failure")
+
+case2$group <- factor(case2$group,
+                      levels = rev(lvls))
+
+mm3.2y <- glm(dead2y ~ group,
               family = binomial(logit),
               data = case2)
 
 # Combine
-ss1 <- (summary(mm1.1y))
-ss1
+ss1 <- (summary(mm3.2y))
 
-out <- data.table(names = levels(case2$group)[-1],
-                  coef = exp(ss1$coefficients[-1, 1]),
-                  lb = exp(ss1$coefficients[-1, 1] - 1.96*ss1$coefficients[-1, 2]),
-                  ub = exp(ss1$coefficients[-1, 1] + 1.96*ss1$coefficients[-1, 2]),
-                  pval = ifelse(ss1$coefficients[-1, 4] >= 0.001,
-                                round(ss1$coefficients[-1, 4], 3),
-                                "<0.001"),
-                  sign = ifelse(ss1$coefficients[-1, 4] <= 0.05,
-                                ifelse(ss1$coefficients[-1, 4] <= 0.01,
-                                       "**",
-                                       "*"), ""))
-datatable(out,
-          options = list(pageLength = nrow(out)))
+out3 <- data.table(names = factor(levels(case2$group)[-1],
+                                  levels = levels(case2$group)[-1]),
+                   coef = round(exp(ss1$coefficients[-1, 1]), 3),
+                   lb = round(exp(ss1$coefficients[-1, 1] - 1.96*ss1$coefficients[-1, 2]), 3),
+                   ub = round(exp(ss1$coefficients[-1, 1] + 1.96*ss1$coefficients[-1, 2]), 3),
+                   pval = ifelse(ss1$coefficients[-1, 4] >= 0.001,
+                                 round(ss1$coefficients[-1, 4], 3),
+                                 "<0.001"),
+                   sign = ifelse(ss1$coefficients[-1, 4] <= 0.05,
+                                 ifelse(ss1$coefficients[-1, 4] <= 0.01,
+                                        "**",
+                                        "*"), ""))
 
+datatable(out3,
+          caption = "Table: 2-year mortality vs. reason for readmission",
+          class = "cell-border stripe",
+          rownames = FALSE,
+          options = list(searching = TRUE,
+                         pageLength = nrow(out3)))
 
-out$names <- factor(out$names,
-                    levels = rev(levels(case2$group)[-1]))
-p7 <- ggplot(out,
-              aes(x = names,
-                  y = coef)) +
+out3$names <- factor(out3$names,
+                     levels = rev(levels(out3$names)))
+p4 <- ggplot(out3,
+             aes(x = names,
+                 y = coef)) +
   coord_flip() +
   geom_hline(yintercept = 1,
              colour = "grey",
@@ -1864,17 +2057,19 @@ p7 <- ggplot(out,
 
 # Save for publication
 tiff(filename = "tmp/fig4.tiff",
-     height = 6,
-     width = 6,
+     height = 5,
+     width = 5,
      units = "in",
      res = 600,
      compression = "lzw+p")
-print(p7)
+print(p4)
 graphics.off()
 
-p7
+p4
 ```
-Compare to risk of 1-year (from the index HF discharge) all-cause mortality after the first HF readmission, not being readmitted or being readmitted for the first time for heart disease, respiratory problems, arrhythmia, diabetes, general symptoms, hypertension, procedures or other reasons decreased the risk. on the other hand, readmission for kidney disease, infections or cerebrovascular issues increased the risk.
+
+
+Compare to risk of 2-year (from the index HF discharge) all-cause mortality after the first HF readmission, not being readmitted or being readmitted for the first time for heart disease, respiratory problems, arrhythmia, diabetes, general symptoms, hypertension, procedures or other reasons decreased the risk. On the other hand, readmission for kidney disease or infections increased the risk.
 
 # Appendix
 ## ICD Codes
