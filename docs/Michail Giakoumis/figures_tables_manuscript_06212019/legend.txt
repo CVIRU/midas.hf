@@ -2,11 +2,12 @@ Figures:
 Figure 1(fig1): number of new HF cases (discharges) between 2000 and 2014. Blue line with gray band represents significant linear trend (slope = -155.6, p-value < 0.0010 with a 95% C.I.
 Figure 2(fig2): percent events over time, with fitted linear trends and 95% C.I. bands. Black lines correspond to 30-day follow-up, reds to 90-day, greens to 180-day and blue lines to the 1-year.
 Figure 3(fig3): odds ratios of all-cause readmission. Legend: A = discharge year, B = age (x10), ..., NA = teaching hospital
+figure 4(fig4): odds ratios of all-cause death within one year of index HF discharge. Reference level = HF readmission.
 
 Optional figures:
-Figure 4(fig4): odds ratios of HF readmission. Legend: A = discharge year, B = age (x10), ..., NA = teaching hospital
-Figure 5(fig5): odds ratios of all-cause death. Legend: A = discharge year, B = age (x10), ..., NA = teaching hospital
-Figure 6(fig6): odds ratios of CV death. Legend: A = discharge year, B = age (x10), ..., NA = teaching hospital
+Figure 5(fig5): odds ratios of HF readmission. Legend: A = discharge year, B = age (x10), ..., NA = teaching hospital
+Figure 6(fig6): odds ratios of all-cause death. Legend: A = discharge year, B = age (x10), ..., NA = teaching hospital
+Figure 7(fig7): odds ratios of CV death. Legend: A = discharge year, B = age (x10), ..., NA = teaching hospital
 
 Tables:
 Table 1(tab1): number of new HF cases (discharges) between 2000 and 2014 and their mean age

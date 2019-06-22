@@ -796,12 +796,6 @@ p1
 
 **NOTE***: 3,433  patients were discharged at the day of admission. This might include transfers to other hospitals but we did not look at transfers.
 
-```{r readm_reason_grp}
-dt1 <- fread("data/HF readmissions by cause.csv",
-             header = TRUE)
-dt1
-```
-
 # Part III: Logistic Regression Models
 ```{r labels}
 t2.names <- c("Discharge year",
@@ -842,6 +836,8 @@ case$DSCYR <- as.numeric(case$DSCYR)
 paste(format(nrow(case[Area == "Unknown", ]),
              big.mark = ","),
       "patients are from hospitals with no info; REMOVE THEM")
+
+case1 <- copy(case)
 case <- droplevels(case[Area != "Unknown", ])
 ```
 
@@ -1057,16 +1053,18 @@ p2a <- ggplot(t2a,
                  fill = names),
              size = 2,
              shape = 21) +
-  scale_fill_manual(labels = paste(LETTERS[1:nlevels(t2a$names)],
+  scale_fill_manual(labels = paste(1:nlevels(t2a$names),
                                    levels(t2a$names),
                                    sep = ": "),
                     values = rainbow(nlevels(t2a$names))) +
   scale_x_discrete("Risk Factors",
-                   labels = LETTERS[1:nlevels(t2a$names)]) +
+                   labels = 1:nlevels(t2a$names)) +
   scale_y_continuous("Odds Ratios") +
   ggtitle("Odds Ratios of All-Cause Readmissions") +
-  theme(axis.text.x = element_text(size = 12,
-                                   hjust = 1),
+  theme(axis.text.x = element_text(angle = 90,
+                                   size = 12,
+                                   hjust = 1,
+                                   vjust = 0.5),
         axis.text.y = element_text(size = 12),
         text = element_text(size = 12),
         plot.title = element_text(hjust = 0.5)) +
@@ -1278,16 +1276,18 @@ p2b <- ggplot(t2b,
                  fill = names),
              size = 2,
              shape = 21) +
-  scale_fill_manual(labels = paste(LETTERS[1:nlevels(t2a$names)],
+  scale_fill_manual(labels = paste(1:nlevels(t2a$names),
                                    levels(t2a$names),
                                    sep = ": "),
                     values = rainbow(nlevels(t2a$names))) +
   scale_x_discrete("Risk Factors",
-                   labels = LETTERS[1:nlevels(t2a$names)]) +
+                   labels = 1:nlevels(t2a$names)) +
   scale_y_continuous("Odds Ratios") +
   ggtitle("Odds Ratios of HF Readmissions") +
-  theme(axis.text.x = element_text(size = 12,
-                                   hjust = 1),
+  theme(axis.text.x = element_text(angle = 90,
+                                   size = 12,
+                                   hjust = 1,
+                                   vjust = 0.5),
         axis.text.y = element_text(size = 12),
         text = element_text(size = 12),
         plot.title = element_text(hjust = 0.5)) +
@@ -1297,7 +1297,7 @@ p2b <- ggplot(t2b,
 ppp2b <- p2b +
   ggtitle("") +
   theme(legend.position = "none")
-tiff(filename = "tmp/fig4.tiff",
+tiff(filename = "tmp/fig5.tiff",
      height = 6,
      width = 10,
      units = "in",
@@ -1499,16 +1499,18 @@ p2c <- ggplot(t2c,
                  fill = names),
              size = 2,
              shape = 21) +
-  scale_fill_manual(labels = paste(LETTERS[1:nlevels(t2c$names)],
+  scale_fill_manual(labels = paste(1:nlevels(t2c$names),
                                    levels(t2c$names),
                                    sep = ": "),
                     values = rainbow(nlevels(t2c$names))) +
   scale_x_discrete("Risk Factors",
-                   labels = LETTERS[1:nlevels(t2c$names)]) +
+                   labels = 1:nlevels(t2c$names)) +
   scale_y_continuous("Odds Ratios") +
   ggtitle("Odds Ratios of All-Cause Death") +
-  theme(axis.text.x = element_text(size = 12,
-                                   hjust = 1),
+  theme(axis.text.x = element_text(angle = 90,
+                                   size = 12,
+                                   hjust = 1,
+                                   vjust = 0.5),
         axis.text.y = element_text(size = 12),
         text = element_text(size = 12),
         plot.title = element_text(hjust = 0.5)) +
@@ -1518,7 +1520,7 @@ p2c <- ggplot(t2c,
 ppp2c <- p2c +
   ggtitle("") +
   theme(legend.position = "none")
-tiff(filename = "tmp/fig5.tiff",
+tiff(filename = "tmp/fig6.tiff",
      height = 6,
      width = 10,
      units = "in",
@@ -1720,16 +1722,18 @@ p2d <- ggplot(t2d,
                  fill = names),
              size = 2,
              shape = 21) +
-  scale_fill_manual(labels = paste(LETTERS[1:nlevels(t2a$names)],
+  scale_fill_manual(labels = paste(1:nlevels(t2a$names),
                                    levels(t2a$names),
                                    sep = ": "),
                     values = rainbow(nlevels(t2a$names))) +
   scale_x_discrete("Risk Factors",
-                   labels = LETTERS[1:nlevels(t2a$names)]) +
+                   labels = 1:nlevels(t2a$names)) +
   scale_y_continuous("Odds Ratios") +
   ggtitle("Odds Ratios of CV Death") +
-  theme(axis.text.x = element_text(size = 12,
-                                   hjust = 1),
+  theme(axis.text.x = element_text(angle = 90,
+                                   size = 12,
+                                   hjust = 1,
+                                   vjust = 0.5),
         axis.text.y = element_text(size = 12),
         text = element_text(size = 12),
         plot.title = element_text(hjust = 0.5)) +
@@ -1739,7 +1743,7 @@ p2d <- ggplot(t2d,
 ppp2d <- p2d +
   ggtitle("") +
   theme(legend.position = "none")
-tiff(filename = "tmp/fig6.tiff",
+tiff(filename = "tmp/fig7.tiff",
      height = 6,
      width = 10,
      units = "in",
@@ -1751,37 +1755,126 @@ graphics.off()
 p2d
 ```
 
-# Additional Analysis: effect of readmission for specific reason
-```{r readm_cause_grp}
+# Additional Analysis: Effect of Readmission for Specific Reason on 1-Year All-Cause Mortality
+```{r readm_cause_grp, fig.height=6, fig.width=6}
+nrow(tmp1y)
+# 49,224
+
 readm_grp <- fread("data/HF readmissions by cause.csv")
+datatable(readm_grp,
+          options = list(pageLength = nrow(readm_grp)))
 
-readm_grp <- merge(readm_grp,
-                   readm_cause,
-                   by = "major")
-readm_grp <- readm_grp[, c("Patient_ID",
-                           "group")]
-table(readm_grp$group)
+readm1y <- merge(readm_grp,
+                 tmp1y,
+                 by = "major")
+readm1y$days2readm <- NULL
+readm1y$readm.dx1 <- NULL
 
-case1 <- merge(case, 
-               readm_grp,
+case1$dead1y <- FALSE
+case1$dead1y[case1$days2death < 366] <- TRUE
+
+case2 <- merge(case1, 
+               readm1y,
                by = "Patient_ID",
                all.x = TRUE)
-case1$group[is.na(case1$group)] <- "Other Reason"
-case1$group[case1$days2readm > 365] <- "Not Readmitted"
-table(case1$group)
 
-case$dead1y[case$days2death < 366] <- TRUE
-case1$group <- factor(case1$group,
-                      levels = c("Not Readmitted",
-                                 unique(case1$group)[-5]))
+case2$group[is.na(case2$group)] <- "Other Reason"
+case2$group[case2$days2readm > 365 |
+              is.na(case2$days2readm)] <- "Not Readmitted"
+case2$group <- factor(case2$group,
+                      levels = c("Heart failure",
+                                 "Not Readmitted",
+                                 "Heart Disease",
+                                 "Respiratory",
+                                 "Kidney Disease",
+                                 "Arrhythmia",
+                                 "Infections",
+                                 "Diabetes mellitus",
+                                 "General symptoms",
+                                 "Hypertension",
+                                 "Procedures",
+                                 "Cerebrovascular",
+                                 "Other Reason"))
+
+case2$dead1y[case2$days2death < 366] <- TRUE
+case2$dead1y[is.na(case2$dead1y)] <- FALSE
+
+tab7 <- addmargins(table(case2$group,
+                         case2$dead1y))
+
+tab7b <- data.table(Reason = rownames(tab7),
+                    Alive = format(tab7[, 1],
+                                   big.mark = ","),
+                    Alive_Pct = round(100*tab7[, 1]/tab7[, 3], 1),
+                    Dead = format(tab7[, 2],
+                                  big.mark = ","),
+                    Dead_Pct = round(100*tab7[, 2]/tab7[, 3], 1),
+                    Total = format(tab7[, 3],
+                                     big.mark = ","))
+
+datatable(tab7b,
+          options = list(pageLength = nrow(tab7b)))
+
+
 mm1.1y <- glm(dead1y ~ group,
               family = binomial(logit),
-              data = case1)
+              data = case2)
 
 # Combine
 ss1 <- (summary(mm1.1y))
 ss1
+
+out <- data.table(names = levels(case2$group)[-1],
+                  coef = exp(ss1$coefficients[-1, 1]),
+                  lb = exp(ss1$coefficients[-1, 1] - 1.96*ss1$coefficients[-1, 2]),
+                  ub = exp(ss1$coefficients[-1, 1] + 1.96*ss1$coefficients[-1, 2]),
+                  pval = ifelse(ss1$coefficients[-1, 4] >= 0.001,
+                                round(ss1$coefficients[-1, 4], 3),
+                                "<0.001"),
+                  sign = ifelse(ss1$coefficients[-1, 4] <= 0.05,
+                                ifelse(ss1$coefficients[-1, 4] <= 0.01,
+                                       "**",
+                                       "*"), ""))
+datatable(out,
+          options = list(pageLength = nrow(out)))
+
+
+out$names <- factor(out$names,
+                    levels = rev(levels(case2$group)[-1]))
+p7 <- ggplot(out,
+              aes(x = names,
+                  y = coef)) +
+  coord_flip() +
+  geom_hline(yintercept = 1,
+             colour = "grey",
+             size = 1.1,
+             linetype = 2) +
+  geom_errorbar(aes(ymin = lb,
+                    ymax = ub),
+                size = 0.4,
+                width = 0.2) +
+  geom_point(aes(x = names,
+                 y = coef,
+                 fill = names),
+             size = 2,
+             shape = 21) +
+  scale_x_discrete("") +
+  scale_y_continuous("Odds Ratios") +
+  theme(legend.position = "none")
+
+# Save for publication
+tiff(filename = "tmp/fig4.tiff",
+     height = 6,
+     width = 6,
+     units = "in",
+     res = 600,
+     compression = "lzw+p")
+print(p7)
+graphics.off()
+
+p7
 ```
+Compare to risk of 1-year (from the index HF discharge) all-cause mortality after the first HF readmission, not being readmitted or being readmitted for the first time for heart disease, respiratory problems, arrhythmia, diabetes, general symptoms, hypertension, procedures or other reasons decreased the risk. on the other hand, readmission for kidney disease, infections or cerebrovascular issues increased the risk.
 
 # Appendix
 ## ICD Codes
@@ -1840,12 +1933,12 @@ table1app <- table1app[order(table1app$Comorbidity), ]
 #           file = "tmp/table1app.csv",
 #           row.names = FALSE)
 
-DT::datatable(table1app,
-              caption = "Appendix Table 1: ICD-9 codes for comorbidities",
-              class = "cell-border stripe",
-              rownames = FALSE,
-              options = list(searching = TRUE,
-                             pageLength = nrow(table1app)))
+datatable(table1app,
+          caption = "Appendix Table 1: ICD-9 codes for comorbidities",
+          class = "cell-border stripe",
+          rownames = FALSE,
+          options = list(searching = TRUE,
+                         pageLength = nrow(table1app)))
 ```
 
 ### Cause of CV death (ICD-10)
@@ -1868,7 +1961,7 @@ t2 <- data.table(Diagnosis = c("Major cardiovascular diseases",
                               "I60-I69",
                               "I70",
                               "I71-I78"))
-DT::datatable(t2,
+datatable(t2,
               caption = "Appendix Table 2: CID-10 codes for cause of death",
               rownames = FALSE,
               class = "cell-border stripe",
