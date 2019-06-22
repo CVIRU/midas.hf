@@ -14,6 +14,9 @@
 [References](#ref)   
 
 ## Daily Log<a name="log"></a>
+### 06/21/2019
+* Added readmission type vs. 1-year all-cause mortality analysis
+
 ### 06/20/2019
 * Dr. Kostis' requests    
 1. Redraw Figures 1 (number of new HF patients over time), 2 (number of events at fiollow-up over time) and 3 (odds ratios, full models) to TIFF; remove plot titles and legends.    
