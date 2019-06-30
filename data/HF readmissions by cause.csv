@@ -1,12 +1,12 @@
 major,group
+Acute myocardial infarction,AMI
 Cardiac dysrhythmias,Arrhythmia
 Occlusion of cerebral arteries,Cerebrovascular
 Diabetes mellitus,Diabetes mellitus
 General symptoms,General symptoms
-Heart failure,Heart failure
 Other forms of chronic ischemic heart disease,Heart Disease
-Acute myocardial infarction,Heart Disease
 Other diseases of endocardium,Heart Disease
+Heart failure,Heart failure
 Hypertensive heart disease,Hypertension
 Hypertensive heart and chronic kidney disease,Hypertension
 Septicemia,Infections

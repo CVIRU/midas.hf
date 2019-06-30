@@ -25,9 +25,10 @@ require(ggplot2)
 require(knitr)
 require(icd)
 require(icd.data)
+require(segmented)   
 ```
 
-# Part I: Data
+# Data
 ```{r data}
 load("data/case.RData")
 
@@ -108,7 +109,11 @@ datatable(t1,
           rownames = FALSE,
           class = "cell-border stripe",
           options = list(searching = TRUE,
-                         pageLength = nrow(t1)))
+                         pageLength = nrow(t1))) %>%
+  formatCurrency(columns = 2, 
+                 currency = "",
+                 digits = 0,
+                 mark = ",")
 ```
 
 # Plot of number of new HF patients form 1995 to 2015
@@ -188,6 +193,78 @@ m1 <- lm(Counts ~ years,
 summary(m1)
 ```
 
+# Breakpoint model for number of first HF admissions
+A breakpoint model fitted significantly better to the number of new HF over time data than did a sigle-line fit (ANOVA p-value < 0.001). Adding second breakpoint did not improve the fit (ANOVA p-value = 0.301)
+
+```{r breakpoint}
+m1.1 <- segmented(m1)
+
+# Compare with lm
+anova(m1.1, m1)
+# Model 1: Counts ~ years + U1.years + psi1.years
+# Model 2: Counts ~ years
+#   Res.Df     RSS Df Sum of Sq      F    Pr(>F)    
+# 1     11  474536                                  
+# 2     13 2065157 -2  -1590622 18.436 0.0003071 ***
+# IMPROVEMENT OVER LM: keep cahngepoint model
+
+m1.2 <- segmented(m1, npsi = 2)
+anova(m1.2, m1.1)
+# Analysis of Variance Table
+# Model 1: Counts ~ years + U1.years + U2.years + psi1.years + psi2.years
+# Model 2: Counts ~ years + U1.years + psi1.years
+# Res.Df    RSS Df Sum of Sq     F Pr(>F)
+# 1      9 363412                          
+# 2     11 474536 -2   -111124 1.376  0.301
+# NO IMPROVEMENT: keep the single-changepoint model
+
+# Summary of the best model
+m1.1
+s1.1 <- summary(m1.1)
+s1.1
+
+out <- data.table(bp = round(2000 + m1.1$psi[2], 1),
+                  bplb = round(2000 + confint(m1.1)[2], 1),
+                  bpub = round(2000 + confint(m1.1)[3], 1),
+                  slope1 = round(s1.1$coefficients[2, 1], 1),
+                  s1lb = round(s1.1$coefficients[2, 1] - qt(p = 0.975,
+                                                            df = s1.1$df[2])*s1.1$coefficients[2, 2], 1),
+                  s1ub = round(s1.1$coefficients[2, 1] + qt(p = 0.975,
+                                                            df = s1.1$df[2])*s1.1$coefficients[2, 2], 1))
+
+cp <- data.table(Year = 2000:2014,
+                 Fitted = m1.1$fitted.values)
+
+p1 <- ggplot(t2,
+             aes(x = Year,
+                 y = Counts)) +
+  geom_line(data = cp,
+            aes(x = Year,
+                y = Fitted),
+            size = 1) +
+  geom_point(size = 3,
+             shape = 21,
+             fill = "red") +
+  scale_x_continuous("Discharge Year",
+                     breaks = 2000:2014,
+                     limits = c(2000, 2014)) +
+  scale_y_continuous("Number of Patients",
+                     breaks = seq(0, 10000, 1000),
+                     limits = c(0, 10000)) +
+  ggtitle(paste("Figure 1: Number of first HF discharges. Total of",
+                format(nrow(case[DSCYR > 1999 & 
+                                   DSCYR < 2015]),
+                       big.mark = ","),
+                "patients, no prior HF.")) +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1),
+        plot.title = element_text(hjust = 0))
+p1
+```
+
+The breakpoint was estimated to be at the year `r out$bp` (95% C.I.  = `r out$bplb` to `r out$bpub`). The number of new HF patients dicreased significantly between the years 2000 and 2006 by `r -out$slope1` patients on average (95% C.I. = `r out$s1lb` to `r out$s1ub`, p-value < 0.001), and remained almost unchanged from 2007 onward.      
+
+# Demographics 
 ```{r demog}
 case <- case[DSCYR > 1999 & DSCYR < 2015, ]
 
@@ -339,7 +416,7 @@ datatable(table1,
                          pageLength = nrow(table1)))
 ```  
 
-# Part II: Rates
+# Rates of outcomes
 ## All-Cause Readmissions
 ```{r rates_all_cause_readm}
 invisible({
@@ -577,6 +654,7 @@ datatable(t1d.apx,
                          pageLength = nrow(t1d.apx)))
 ```
 
+## Plot of outcome rates
 ```{r rates_plot, fig.height = 6, fig.width = 7,} 
 # Save the table as CSV
 table1.apx <- cbind.data.frame(t1a.apx,
@@ -689,6 +767,7 @@ graphics.off()
 print(p1)
 ```
 
+## Outcome rate linear trends
 ```{r rates_1y_trends}
 out <- list()
 for (i in 1:length(t1.apx)) {
@@ -702,7 +781,42 @@ names(out) <- names(t1.apx)
 out
 ```
 
-# Causes for Readmission
+# Length of stay
+```{r length_of_stay, warning=FALSE}
+# Length of stay
+case$los <- as.numeric(difftime(case$DSCHDAT,
+                                case$ADMDAT,
+                                units = "days"))
+
+# Distribution of length of stay
+summary(case$los)
+p1 <- ggplot(case[ , "los"],
+             aes(x = los)) +
+  geom_histogram(bins = 30,
+                 color = "black",
+                 fill = "green") +
+  scale_x_continuous("Length of Stay",
+                     limits = c(0, 60),
+                     breaks = c(0, 1, 5, 10, 15, 30, 60, 120, 180)) +
+  scale_y_continuous("Number of Patients") +
+  theme(axis.text.x = element_text(angle = 90))
+p1
+
+p2 <- ggplot(case[ , "los"],
+             aes(x = los)) +
+  geom_histogram(bins = 30,
+                 color = "black",
+                 fill = "green") +
+  scale_x_log10("Length of Stay (Semi-Log Scale)",
+                breaks = c(0, 1, 5, 10, 15, 30, 60, 120, 180)) +
+  scale_y_continuous("Number of Patients") +
+  theme(axis.text.x = element_text(angle = 90))
+p2
+```
+
+**NOTE***: 3,433  patients were discharged at the day of admission. This might include transfers to other hospitals but we did not look at transfers.
+
+# Causes of readmission
 ```{r readm_causes}
 source("source/icd9_dx_get_data_v1.R")
 dt.icd <- icd9cm_merge_version_dx(32)
@@ -776,28 +890,102 @@ datatable(t1y,
                          pageLength = 20))
 ```
 
-# Length of Stay
-```{r length_of_stay, warning=FALSE}
-# Length of stay
-case$los <- as.numeric(difftime(case$DSCHDAT,
-                     case$ADMDAT,
-                     units = "days"))
+# Group top reasons for readmission
+Reasons for readmission present in at least 1% of patients at 1 year (21 in total) were grouped into 12 categories as the following:
+```{r readm_grp}
+# Readmission causes, groupped by Mike and Dr. Kostis
+readm_grp <- fread("data/HF readmissions by cause.csv")
+setkey(readm_grp,
+       group)
 
-# Distribution of length of stay
-summary(case$los)
-p1 <- ggplot(case[ , "los"],
-             aes(x = los)) +
-  geom_histogram(bins = 15,
-                 color = "black",
-                 fill = "green") +
-  scale_x_log10("Length of Stay",
-                breaks = c(0, 1, 5, 10, 15, 30, 60, 120, 180))
+datatable(readm_grp,
+          caption = "Table: grouping of reasons for redmission",
+          class = "cell-border stripe",
+          rownames = FALSE,
+          options = list(searching = TRUE,
+                         pageLength = nrow(readm_grp)))
+
+readm1y <- merge(readm_grp,
+                 tmp1y,
+                 by = "major")
+readm1y$days2readm <- NULL
+readm1y$readm.dx1 <- NULL
+
+case2 <- merge(case, 
+               readm1y,
+               by = "Patient_ID",
+               all.x = TRUE)
+
+case2$group[is.na(case2$group)] <- "Other Reason"
+case2$group[case2$days2readm > 365 |
+              is.na(case2$days2readm)] <- "Not Readmitted"
+
+case2$group <- factor(case2$group,
+                      levels = c("Heart failure",
+                                 "AMI",
+                                 "Heart Disease",
+                                 "Respiratory",
+                                 "Kidney Disease",
+                                 "Arrhythmia",
+                                 "Infections",
+                                 "Diabetes mellitus",
+                                 "General symptoms",
+                                 "Hypertension",
+                                 "Procedures",
+                                 "Cerebrovascular",
+                                 "Other Reason",
+                                 "Not Readmitted"))
+
+case2$readm1y <- case2$group != "Not Readmitted"
+```
+
+```{r reason_for_readm, fig.height = 8, fig.width = 10}
+t1yg <- data.table(table(case2$group))
+t1yg$Percent <- round(100*t1yg$N/sum(t1yg$N), 1)
+t1yg$V1 <- factor(t1yg$V1,
+                  levels = rev(t1yg$V1))
+
+p2 <- ggplot(t1yg,
+             aes(x = V1,
+                 y = N,
+                 fill = V1)) +
+  coord_flip() +
+  geom_bar(stat = "identity",
+           position = position_dodge(0.9),
+           color = "black") +
+  scale_x_discrete("Reason for Readmission") +
+  scale_y_continuous("Number of Patients") +
+  geom_text(aes(x = V1,
+                y = N + 5000,
+                angle = 0,
+                label = paste(Percent,
+                              "%",
+                              sep = "")),
+            hjust = 1,
+            size = 4,
+            position = position_dodge(0.9)) +
+  theme(legend.position = "none")
+p2
+```
+
+# Distribution of days to readmission within 1 year by reason
+```{r time_to_readm, fig.height = 8, fig.width = 10}
+p1 <- ggplot(case2[readm1y == TRUE, ],
+             aes(x = days2readm)) +
+  facet_wrap(~ group,
+             scale = "free_y") +
+  geom_histogram(color = "black",
+                 fill = "green",
+                 bins = 30) +
+  scale_x_continuous("Days to Readmission",
+                     breaks = c(0, 30, 60, 90, 180, 365)) +
+  scale_y_continuous("Number of Patients") +
+  theme(axis.text.x = element_text(angle = 90))
 p1
 ```
 
-**NOTE***: 3,433  patients were discharged at the day of admission. This might include transfers to other hospitals but we did not look at transfers.
 
-# Part III: Logistic Regression Models
+# Logistic Regression Models
 ```{r labels}
 t2.names <- c("Discharge year",
               "Age (per 10 Years)",
@@ -1029,12 +1217,51 @@ write.csv(table2a,
           file = "tmp/table2a.csv",
           row.names = FALSE)
 
-datatable(table2a,
+tt1 <- apply(table2a[, -1],
+             MARGIN = 2,
+             function(a) {
+               substr(x = a,
+                      start = nchar(a) - 4,
+                      stop = nchar(a)) %>%
+                 as.numeric()
+             })
+colnames(tt1) <- LETTERS[1:4]
+
+tmp2a <- cbind(table2a,
+                tt1)
+
+datatable(data = tmp2a,
           caption = "Table2A: All-Cause Readmissions",
           class = "cell-border stripe",
           rownames = FALSE,
           options = list(searching = TRUE,
-                         pageLength = nrow(table2a)))
+                         pageLength = nrow(table2a),
+                         columnDefs = list(list(visible = FALSE,
+                                                targets = 5:8)))) %>%
+  formatStyle(columns = 2,
+              valueColumns = 6,
+              color = "black",
+              backgroundColor = styleInterval(cuts = c(0.05),
+                                              values = c("yellow",
+                                                         "white"))) %>%
+  formatStyle(columns = 3,
+              valueColumns = 7,
+              color = "black",
+              backgroundColor = styleInterval(cuts = c(0.05),
+                                              values = c("yellow",
+                                                         "white"))) %>%
+  formatStyle(columns = 4,
+              valueColumns = 8,
+              color = "black",
+              backgroundColor = styleInterval(cuts = c(0.05),
+                                              values = c("yellow",
+                                                         "white"))) %>%
+  formatStyle(columns = 5,
+              valueColumns = 9,
+              color = "black",
+              backgroundColor = styleInterval(cuts = c(0.05),
+                                              values = c("yellow",
+                                                         "white")))
 
 # Plot OR----
 p2a <- ggplot(t2a,
@@ -1253,12 +1480,51 @@ write.csv(table2b,
           file = "tmp/table2b.csv",
           row.names = FALSE)
 
-datatable(table2b,
+tt1 <- apply(table2b[, -1],
+             MARGIN = 2,
+             function(a) {
+               substr(x = a,
+                      start = nchar(a) - 4,
+                      stop = nchar(a)) %>%
+                 as.numeric()
+             })
+colnames(tt1) <- LETTERS[1:4]
+
+tmp2b <- cbind(table2b,
+                tt1)
+
+datatable(data = tmp2b,
           caption = "Table2B: All-Cause Readmissions",
           class = "cell-border stripe",
           rownames = FALSE,
           options = list(searching = TRUE,
-                         pageLength = nrow(table2b)))
+                         pageLength = nrow(table2b),
+                         columnDefs = list(list(visible = FALSE,
+                                                targets = 5:8)))) %>%
+  formatStyle(columns = 2,
+              valueColumns = 6,
+              color = "black",
+              backgroundColor = styleInterval(cuts = c(0.05),
+                                              values = c("yellow",
+                                                         "white"))) %>%
+  formatStyle(columns = 3,
+              valueColumns = 7,
+              color = "black",
+              backgroundColor = styleInterval(cuts = c(0.05),
+                                              values = c("yellow",
+                                                         "white"))) %>%
+  formatStyle(columns = 4,
+              valueColumns = 8,
+              color = "black",
+              backgroundColor = styleInterval(cuts = c(0.05),
+                                              values = c("yellow",
+                                                         "white"))) %>%
+  formatStyle(columns = 5,
+              valueColumns = 9,
+              color = "black",
+              backgroundColor = styleInterval(cuts = c(0.05),
+                                              values = c("yellow",
+                                                         "white")))
 
 # Plot OR----
 p2b <- ggplot(t2b,
@@ -1477,12 +1743,51 @@ write.csv(table2c,
           file = "tmp/table2c.csv",
           row.names = FALSE)
 
-datatable(table2c,
+tt1 <- apply(table2c[, -1],
+             MARGIN = 2,
+             function(a) {
+               substr(x = a,
+                      start = nchar(a) - 4,
+                      stop = nchar(a)) %>%
+                 as.numeric()
+             })
+colnames(tt1) <- LETTERS[1:4]
+
+tmp2c <- cbind(table2c,
+                tt1)
+
+datatable(data = tmp2c,
           caption = "Table2C: All-Cause Death",
           class = "cell-border stripe",
           rownames = FALSE,
           options = list(searching = TRUE,
-                         pageLength = nrow(table2c)))
+                         pageLength = nrow(table2c),
+                         columnDefs = list(list(visible = FALSE,
+                                                targets = 5:8)))) %>%
+  formatStyle(columns = 2,
+              valueColumns = 6,
+              color = "black",
+              backgroundColor = styleInterval(cuts = c(0.05),
+                                              values = c("yellow",
+                                                         "white"))) %>%
+  formatStyle(columns = 3,
+              valueColumns = 7,
+              color = "black",
+              backgroundColor = styleInterval(cuts = c(0.05),
+                                              values = c("yellow",
+                                                         "white"))) %>%
+  formatStyle(columns = 4,
+              valueColumns = 8,
+              color = "black",
+              backgroundColor = styleInterval(cuts = c(0.05),
+                                              values = c("yellow",
+                                                         "white"))) %>%
+  formatStyle(columns = 5,
+              valueColumns = 9,
+              color = "black",
+              backgroundColor = styleInterval(cuts = c(0.05),
+                                              values = c("yellow",
+                                                         "white")))
 
 # Plot OR----
 p2c <- ggplot(t2c,
@@ -1701,12 +2006,51 @@ write.csv(table2d,
           file = "tmp/table2d.csv",
           row.names = FALSE)
 
-datatable(table2d,
+tt1 <- apply(table2d[, -1],
+             MARGIN = 2,
+             function(a) {
+               substr(x = a,
+                      start = nchar(a) - 4,
+                      stop = nchar(a)) %>%
+                 as.numeric()
+             })
+colnames(tt1) <- LETTERS[1:4]
+
+tmp2d <- cbind(table2d,
+                tt1)
+
+datatable(data = tmp2d,
           caption = "Table2D: CV Death",
           class = "cell-border stripe",
           rownames = FALSE,
           options = list(searching = TRUE,
-                         pageLength = nrow(table2d)))
+                         pageLength = nrow(table2d),
+                         columnDefs = list(list(visible = FALSE,
+                                                targets = 5:8)))) %>%
+  formatStyle(columns = 2,
+              valueColumns = 6,
+              color = "black",
+              backgroundColor = styleInterval(cuts = c(0.05),
+                                              values = c("yellow",
+                                                         "white"))) %>%
+  formatStyle(columns = 3,
+              valueColumns = 7,
+              color = "black",
+              backgroundColor = styleInterval(cuts = c(0.05),
+                                              values = c("yellow",
+                                                         "white"))) %>%
+  formatStyle(columns = 4,
+              valueColumns = 8,
+              color = "black",
+              backgroundColor = styleInterval(cuts = c(0.05),
+                                              values = c("yellow",
+                                                         "white"))) %>%
+  formatStyle(columns = 5,
+              valueColumns = 9,
+              color = "black",
+              backgroundColor = styleInterval(cuts = c(0.05),
+                                              values = c("yellow",
+                                                         "white")))
 
 # Plot OR----
 p2d <- ggplot(t2d,
@@ -1761,57 +2105,12 @@ p2d
 ```
 
 # Association of 1-Year Readmission with 2-Year All-Cause Mortality
-## Reasons for readmission
-The top 21 reasons for admission were groupped into the following categories:
-```{r readm_cause_grp, fig.height=6, fig.width=6}
-# Readmission causes, groupped by Mike and Dr. Kostis
-readm_grp <- fread("data/HF readmissions by cause.csv")
-
-readm1y <- merge(readm_grp,
-                 tmp1y,
-                 by = "major")
-readm1y$days2readm <- NULL
-readm1y$readm.dx1 <- NULL
-
-case2 <- merge(case1, 
-               readm1y,
-               by = "Patient_ID",
-               all.x = TRUE)
-
-case2$group[is.na(case2$group)] <- "Other Reason"
-case2$group[case2$days2readm > 365 |
-              is.na(case2$days2readm)] <- "Not Readmitted"
-case2$group <- factor(case2$group,
-                      levels = c("Heart failure",
-                                 "Not Readmitted",
-                                 "Heart Disease",
-                                 "Respiratory",
-                                 "Kidney Disease",
-                                 "Arrhythmia",
-                                 "Infections",
-                                 "Diabetes mellitus",
-                                 "General symptoms",
-                                 "Hypertension",
-                                 "Procedures",
-                                 "Cerebrovascular",
-                                 "Other Reason"))
-
-case2$readm1y <- case2$group != "Not Readmitted"
-
+## 2-year all-cause mortality vs. 1-year readmission, unadjusted logistic model
+```{r death2y_readm1y_unadj}
 # All-cause death within 2 years
 case2$dead2y <- FALSE
 case2$dead2y[case2$days2death < 2*365.25] <- TRUE
 
-datatable(readm_grp,
-          caption = "Table: grouping of reasons for redmission",
-          class = "cell-border stripe",
-          rownames = FALSE,
-          options = list(searching = TRUE,
-                         pageLength = nrow(readm_grp)))
-```
-
-## 2-year all-cause mortality vs. 1-year readmission, unadjusted logistic model
-```{r death2y_readm1y_unadj}
 mm1.2y <- glm(dead2y ~ readm1y,
               family = binomial(logit),
               data = case2)
