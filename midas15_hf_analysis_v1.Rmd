@@ -1185,6 +1185,39 @@ p1 <- ggplot(case2[readm1y == TRUE, ],
 p1
 ```
 
+# 1-year mortality vs.  days to readmission within 1 year
+```{r time_to_readm_glm, warning=FALSE}
+dtreadm <- droplevels(case[!is.na(days2readm), ])
+summary(dtreadm$days2readm)
+hist(dtreadm$days2readm)
+hist(log(dtreadm$days2readm))
+  
+m1c.1y <- glm(dead1y ~ log(days2readm),
+              family = binomial(logit),
+              data = dtreadm)
+
+s1 <- summary(m1c.1y)
+
+t1 <- data.table(Outcome = "All-Cause Death",
+                 OR = exp(s1$coefficients[-1, 1]),
+                 `95% C.I.L.B.` = exp(s1$coefficients[-1, 1] - 1.96*s1$coefficients[-1, 2]),
+                 `95% C.I.U.B.` = exp(s1$coefficients[-1, 1] + 1.96*s1$coefficients[-1, 2]),
+                 `p-Value` = ifelse(s1$coefficients[-1, 4] >= 0.001,
+                                    round(s1$coefficients[-1, 4], 3),
+                                    "<0.001"),
+                 Significance = ifelse(s1$coefficients[-1, 4] <= 0.05,
+                               ifelse(s1$coefficients[-1, 4] <= 0.01,
+                                      "**",
+                                      "*"), ""))
+datatable(data = t1,
+          caption = "Logistic regression models of log-days to all-cause readmission vs. 1-year all-cause death",
+          class = "cell-border stripe",
+          rownames = FALSE,
+          options = list(searching = TRUE,
+                         pageLength = nrow(t1))) %>%
+  formatRound(columns = 2:4,
+              digits = 3)
+```
 
 # Logistic Regression Models
 ```{r labels}
@@ -2484,8 +2517,8 @@ graphics.off()
 print(p1)
 ```
 
-## Odds ratios of 2-year all-cause death by reason for readmission
-```{r death2y_vs_readm1y_reason, fig.height = 5, fig.width = 5}
+## Odds ratios of 2-year all-cause death by reason for readmission, vs. HF readmission
+```{r death2y_vs_readm1y_reason-ref_hf, fig.height = 5, fig.width = 5}
 lvls <- c("Not Readmitted",
           "Other Reason",
           "Cerebrovascular",
@@ -2566,9 +2599,77 @@ graphics.off()
 
 p4
 ```
-
-
 Compare to risk of 2-year (from the index HF discharge) all-cause mortality after the first HF readmission, not being readmitted or being readmitted for the first time for heart disease, respiratory problems, arrhythmia, diabetes, general symptoms, hypertension, procedures or other reasons decreased the risk. On the other hand, readmission for kidney disease or infections increased the risk.
+
+## Odds ratios of 2-year all-cause death by reason for readmission, vs. no readmission
+```{r death2y_vs_readm1y_reason-ref_noreadm, fig.height = 5, fig.width = 5}
+case2$group <- factor(case2$group,
+                      levels = lvls)
+
+mm3.2y <- glm(dead2y ~ group,
+              family = binomial(logit),
+              data = case2)
+
+# Combine
+ss1 <- (summary(mm3.2y))
+
+out3 <- data.table(names = factor(levels(case2$group)[-1],
+                                  levels = levels(case2$group)[-1]),
+                   coef = round(exp(ss1$coefficients[-1, 1]), 3),
+                   lb = round(exp(ss1$coefficients[-1, 1] - 1.96*ss1$coefficients[-1, 2]), 3),
+                   ub = round(exp(ss1$coefficients[-1, 1] + 1.96*ss1$coefficients[-1, 2]), 3),
+                   pval = ifelse(ss1$coefficients[-1, 4] >= 0.001,
+                                 round(ss1$coefficients[-1, 4], 3),
+                                 "<0.001"),
+                   sign = ifelse(ss1$coefficients[-1, 4] <= 0.05,
+                                 ifelse(ss1$coefficients[-1, 4] <= 0.01,
+                                        "**",
+                                        "*"), ""))
+
+datatable(out3,
+          caption = "Table: 2-year mortality vs. reason for readmission",
+          class = "cell-border stripe",
+          rownames = FALSE,
+          options = list(searching = TRUE,
+                         pageLength = nrow(out3)))
+
+out3$names <- factor(out3$names,
+                     levels = rev(levels(out3$names)))
+p4 <- ggplot(out3,
+             aes(x = names,
+                 y = coef)) +
+  coord_flip() +
+  geom_hline(yintercept = 1,
+             colour = "grey",
+             size = 1.1,
+             linetype = 2) +
+  geom_errorbar(aes(ymin = lb,
+                    ymax = ub),
+                size = 0.4,
+                width = 0.2) +
+  geom_point(aes(x = names,
+                 y = coef,
+                 fill = names),
+             size = 2,
+             shape = 21) +
+  scale_x_discrete("") +
+  scale_y_continuous("Odds Ratios") +
+  theme(legend.position = "none")
+
+# Save for publication
+tiff(filename = "tmp/fig5.tiff",
+     height = 5,
+     width = 5,
+     units = "in",
+     res = 600,
+     compression = "lzw+p")
+print(p4)
+graphics.off()
+
+p4
+```
+
+
 
 # Appendix
 ## ICD Codes
