@@ -85,9 +85,11 @@ case$Teach <- factor(case$Teach,
                      labels = c("Teaching",
                                 "Non-Teaching",
                                 "Unknown"))
+rcount.case <- format(nrow(case),
+                      big.mark = ",")
 ```
 
-`r paste("Number of case =", format(nrow(case), big.mark = ","))`
+`r paste("Number of HF patients =", rcount.case)`
 
 
 ```{r hf_discharges}
@@ -136,7 +138,7 @@ p0 <- ggplot(t1,
   scale_y_continuous(breaks = seq(0, 15000, 1000),
                      limits = c(0, 15000)) +
   ggtitle(paste("Figure 1: Number of first HF discharges. Total of",
-                nrow(case),
+                rcount.case,
                 "patients, no prior HF.")) +
   theme(axis.text.x = element_text(angle = 45,
                                    hjust = 1),
@@ -245,13 +247,13 @@ s1.1 <- summary(m1.1)
 s1.1
 
 out.p <- data.table(bp = round(2000 + m1.1$psi[2], 1),
-                  bplb = round(2000 + confint(m1.1)[2], 1),
-                  bpub = round(2000 + confint(m1.1)[3], 1),
-                  slope1 = round(s1.1$coefficients[2, 1], 1),
-                  s1lb = round(s1.1$coefficients[2, 1] - qt(p = 0.975,
-                                                            df = s1.1$df[2])*s1.1$coefficients[2, 2], 1),
-                  s1ub = round(s1.1$coefficients[2, 1] + qt(p = 0.975,
-                                                            df = s1.1$df[2])*s1.1$coefficients[2, 2], 1))
+                    bplb = round(2000 + confint(m1.1)[2], 1),
+                    bpub = round(2000 + confint(m1.1)[3], 1),
+                    slope1 = round(s1.1$coefficients[2, 1], 1),
+                    s1lb = round(s1.1$coefficients[2, 1] - qt(p = 0.975,
+                                                              df = s1.1$df[2])*s1.1$coefficients[2, 2], 1),
+                    s1ub = round(s1.1$coefficients[2, 1] + qt(p = 0.975,
+                                                              df = s1.1$df[2])*s1.1$coefficients[2, 2], 1))
 
 cp <- data.table(Year = 2000:2014,
                  Fitted = m1.1$fitted.values)
@@ -283,7 +285,9 @@ p1 <- ggplot(t2,
 p1
 ```
 
-The breakpoint was estimated to be at the year `r out.p$bp` (95% C.I.  = `r out.p$bplb` to `r out.p$bpub`). The number of new HF patients dicreased significantly between the years 2000 and 2006 by `r -out.p$slope1` patients on average (95% C.I. = `r out.p$s1lb` to `r out.p$s1ub`, p-value < 0.001), and remained almost unchanged from 2007 onward.   
+The breakpoint was estimated to be at the year `r out.p$bp` (95% C.I.  = `r out.p$bplb` to `r out.p$bpub`). The number of new HF patients dicreased significantly between the years 2000 and 2006 by `r -out.p$slope1` patients on average (95% C.I. = `r out.p$s1lb` to `r out.p$s1ub`, p-value < 0.001), and remained almost unchanged from 2007 onward.     
+       
+**NOTE**: Javier suggested using a fixed breakpoint model so no model selection would be needed (i.e. no need to search for the model with the best breakpoint). not implemented in this document (yet!).
 
 ```{r case_2000_2014_only}
 case <- case[DSCYR > 1999 & DSCYR < 2015, ]
@@ -882,7 +886,8 @@ outcomes <- c("All-Cause Readmission",
 t1 <- list()
 for (i in 1:4) {
   a <- s1[[i]]
-  out <- data.table(Covariate = c("Age (x10)",
+  out <- data.table(Row = rownames(a$coefficients)[-1],
+                    Covariate = c("Age (x10)",
                                   "Female vs. Male",
                                   "Race:Black vs. White",
                                   "Race:Other vs.White",
@@ -908,7 +913,7 @@ for (i in 1:4) {
             rownames = FALSE,
             options = list(searching = TRUE,
                            pageLength = nrow(out))) %>%
-    formatRound(columns = 2:4,
+    formatRound(columns = 3:5,
                 digits = 3))
 }
 ```
@@ -932,7 +937,9 @@ p1 <- ggplot(case[ , "los"],
                      limits = c(0, 60),
                      breaks = c(0, 1, 5, 10, 15, 30, 60, 120, 180)) +
   scale_y_continuous("Number of Patients") +
-  theme(axis.text.x = element_text(angle = 90))
+  theme(axis.text.x = element_text(angle = 90,
+                                   vjust = 0.5,
+                                   hjust = 1))
 p1
 
 p2 <- ggplot(case[ , "los"],
@@ -941,13 +948,17 @@ p2 <- ggplot(case[ , "los"],
                  color = "black",
                  fill = "green") +
   scale_x_log10("Length of Stay (Semi-Log Scale)",
-                breaks = c(0, 1, 5, 10, 15, 30, 60, 120, 180)) +
+                breaks = c(0:5, 10, 15, 30, 60, 120, 180)) +
   scale_y_continuous("Number of Patients") +
-  theme(axis.text.x = element_text(angle = 90))
+  theme(axis.text.x = element_text(angle = 90,
+                                   vjust = 0.5,
+                                   hjust = 1))
 p2
 ```
 
 **NOTE***: 3,433  patients were discharged at the day of admission. This might include transfers to other hospitals but we did not look at transfers.
+     
+**NOTE to myself**: Javier wants to eliminate the gaps. How to do it?
 
 ```{r los_glm, warning=FALSE}
 m1a.1y <- glm(readm1y ~ los,
@@ -1185,14 +1196,54 @@ p1 <- ggplot(case2[readm1y == TRUE, ],
 p1
 ```
 
+# Effect of Hospital Readmissions Reduction Program (HRRP)
+[Hospital Readmissions Reduction Program (HRRP)](https://www.cms.gov/medicare/medicare-fee-for-service-payment/acuteinpatientpps/readmissions-reduction-program.html) was implemented beginning October 1, 2012 (i.e., Federal Fiscal Year 2013). Additionally, the 21st Century Cures Act required CMS to assess penalties based on a hospital’s performance relative to other hospitals with a similar proportion of patients who are dually eligible for Medicare and full-benefit Medicaid beginning in FY 2019. We hypothesized that this program resulted in reduced number of recorded HF readmissions. 
+
+```{r hf_readm_rate_reduction_program}
+tmp1 <- data.table(readm.hf = (case2$group == "Heart failure"),
+                   days2readm = case2$days2readm, 
+                   dsch.year = case2$DSCYR)
+
+tmp1[, readm30 := days2readm < 31]
+tmp1$readm30[is.na(tmp1$readm30)] <- FALSE
+
+t5 <- addmargins(table(dsch.year = tmp1$dsch.year,
+                       readm.hf = tmp1$readm.hf,
+                       readm30 = tmp1$readm30))
+tt1 <- data.table(dsch.year = rownames(t5[, , 1]),
+                  n.readm.hf.30d = t5[, 2, 2],
+                  n.readm.hf.1y = t5[, 2, 3],
+                  n.hf = t5[, 3, 3])
+
+tt2 <- data.table(`Discharge Year` = tt1$dsch.year,
+                  `30-Day HF Readmission (%)` = 100*tt1$n.readm.hf.30d/tt1$n.hf,
+                  `1-Year HF Readmission (%)` = 100*tt1$n.readm.hf.1y/tt1$n.hf,
+                  `Number of HF Patients` = tt1$n.hf)
+
+datatable(data = tt2,
+          caption = "30-day and 1-year HF readmission rates",
+          class = "cell-border stripe",
+          rownames = FALSE,
+          options = list(searching = TRUE,
+                         pageLength = nrow(tt2))) %>%
+  formatRound(columns = 2:3,
+              digits = 1) %>%
+    formatCurrency(columns = 4, 
+                 currency = "",
+                 digits = 0,
+                 mark = ",")
+```
+
+No reduction in 30-day HF readmission rates was observed.
+
 # 1-year mortality vs.  days to readmission within 1 year
 ```{r time_to_readm_glm, warning=FALSE}
 dtreadm <- droplevels(case[!is.na(days2readm), ])
 summary(dtreadm$days2readm)
 hist(dtreadm$days2readm)
-hist(log(dtreadm$days2readm))
+hist(log2(dtreadm$days2readm))
   
-m1c.1y <- glm(dead1y ~ log(days2readm),
+m1c.1y <- glm(dead1y ~ log2(days2readm),
               family = binomial(logit),
               data = dtreadm)
 
@@ -1219,11 +1270,13 @@ datatable(data = t1,
               digits = 3)
 ```
 
+This model suggests that a patient readmitted for HF within a given time interval from the index HF discharge date will, on average, have his odds of dying within 1 year (from any cause) reduced 27.7% (OR = 0.723, 95% C.I. = 0.717 to 0.729, p-value < 0.001). the time intervals are defined by doubling the amount of days from the previous time interval (as a consequence of log2 transformation of the number of days). For example, the odds of 1 year all-cause mortality of a patient readmitted between days 9 and 16 from the index HF discharge [from day 2^3 + 1 to day 2^4)] will be 27.7% less that the odds of a patient readmitted between days 5 and 8 [from day 2^2 + 1 to 2^3].
+
 # Logistic Regression Models
 ```{r labels}
 t2.names <- c("Discharge year",
               "Age (per 10 Years)",
-              "Sex (Male)",
+              "Sex (Female)",
               "Race (Black)",
               "Race (Other)",
               "Non-Hispanic vs. Hispanic",
@@ -1262,7 +1315,10 @@ case <- droplevels(case[Area != "Unknown", ])
 ```
 
 ## Correlations of binary variables
+See [Appendix Statistics section](#apx-stats-psi) for details.
+
 ```{r correlations}
+# ${\begin{table}[]\begin{tabular}{llll}& y = 1 & y = 0 & total \\x = 1 & n11 & n10 & n1.   \\x = 0 & n01   & n00   & n0.   \\total & n.1   & n.0   & n    \end{tabular}\end{table}}$
 tmp <- case[, haf:htia]
 colnames(tmp) <- c("AFib/AFlutter",
                    "AMI",
@@ -1459,7 +1515,7 @@ tt1 <- apply(table2a[, -1],
 colnames(tt1) <- LETTERS[1:4]
 
 tmp2a <- cbind(table2a,
-                tt1)
+               tt1)
 
 datatable(data = tmp2a,
           caption = "Table2A: All-Cause Readmissions",
@@ -2672,8 +2728,24 @@ p4
 
 
 # Appendix
+## Statistics
+### Phi Correlation coefficient {#apx-stats-psi}
+The correlation between the binary variables was assessed using Phi statistic (Pearson correlation coefficient for binary variables) as follows:   
+$\phi^2 = \frac{n_{11}*n_{00}-n_{10}*n_{01}}{\sqrt{n_{1\bullet}*n_{0\bullet}*n_{\bullet0}*n_{\bullet1}}}$
+where the *n*-s are from the following 2X2 table:
+
+```{r psi_table}
+dtt <- data.table(`y = 1` = c("n11", "n01", "n.1"),
+                  `y = 0` = c("n10", "n00", "n.0"),
+                  `total` = c("n1.", "n0.", "n"))
+rownames(dtt) <- c("x = 1", "x = 0", "total")
+datatable(dtt)
+```
+
 ## ICD Codes
 ### Diagnoses (ICD-9)
+**NOTE**: cancer and HIV were the exclusion criteria.
+
 ```{r icd9, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE}
 l1 <- fread("data/midas.hf_icd9_codes_2019-05-10.csv",
             colClasses = c("character"))
@@ -2737,31 +2809,31 @@ datatable(table1app,
 ```
 
 ### Cause of CV death (ICD-10)
-```{r icd10, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE}
-t2 <- data.table(Diagnosis = c("Major cardiovascular diseases",
-                               "Diseases of heart",
-                               "Hypertensive heart disease with or without renal disease",
-                               "Ischemic heart diseases",
-                               "Other diseases of heart",
-                               "Essential (primary) hypertension and hypertensive renal disease",
-                               "Cerebrovascular diseases",
-                               "Atherosclerosis",
-                               "Other diseases of circulatory system"),
-                 `ICD-10` = c("I00-I78",
-                              "I00-I09, I11, I13, I20-I51",
-                              "I11,I13",
-                              "I20-I25",
-                              "I00-I09,I26-I51",
-                              "I10,I12",
-                              "I60-I69",
-                              "I70",
-                              "I71-I78"))
-datatable(t2,
-              caption = "Appendix Table 2: CID-10 codes for cause of death",
-              rownames = FALSE,
-              class = "cell-border stripe",
-              options = list(searching = TRUE,
-                             pageLength = nrow(t1)))
+```{r icd10}
+table2app <- data.table(Diagnosis = c("Major cardiovascular diseases",
+                                      "Diseases of heart",
+                                      "Hypertensive heart disease with or without renal disease",
+                                      "Ischemic heart diseases",
+                                      "Other diseases of heart",
+                                      "Essential (primary) hypertension and hypertensive renal disease",
+                                      "Cerebrovascular diseases",
+                                      "Atherosclerosis",
+                                      "Other diseases of circulatory system"),
+                        `ICD-10` = c("I00-I78",
+                                     "I00-I09, I11, I13, I20-I51",
+                                     "I11,I13",
+                                     "I20-I25",
+                                     "I00-I09,I26-I51",
+                                     "I10,I12",
+                                     "I60-I69",
+                                     "I70",
+                                     "I71-I78"))
+datatable(table2app,
+          caption = "Appendix Table 2: CID-10 codes for cause of death",
+          rownames = FALSE,
+          class = "cell-border stripe",
+          options = list(searching = TRUE,
+                         pageLength = nrow(table2app)))
 ```
 
 ## Abbreviations
@@ -2779,6 +2851,9 @@ datatable(t2,
 #                              pageLength = nrow(t1)))
 ```
 
+## Sources
+
+## References
 
 ## Session Info
 ```{r}
