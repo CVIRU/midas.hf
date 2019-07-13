@@ -17,13 +17,14 @@ Statistician: Davit Sargsyan
 Date: `r date()`
 
 # Header
-```{r Header,echo=FALSE,message=FALSE,error=FALSE,warning=FALSE}
+```{r setup,echo = FALSE, message = FALSE, error = FALSE, warning = FALSE}
 # Load packages
 require(data.table)
 require(DT)
 require(ggplot2)
 require(plotly)
 require(knitr)
+require(gridExtra)
 require(icd)
 require(icd.data)
 require(segmented)   
@@ -32,9 +33,6 @@ require(segmented)
 # Data
 ```{r data}
 load("data/case.RData")
-
-# ATTN! FIX THIS!
-case <- case[, -1]
 
 # Make age per 10 year
 case$decade <- floor(case$AGE/10)
@@ -177,19 +175,6 @@ p0 <- ggplot(t2,
                                    hjust = 1),
         plot.title = element_text(hjust = 0))
 
-# Save for publication
-pp0 <- p0 +
-  ggtitle("") +
-  theme(legend.position = "none")
-tiff(filename = "tmp/fig1.tiff",
-     height = 5,
-     width = 6,
-     units = "in",
-     res = 600,
-     compression = "lzw+p")
-print(pp0)
-graphics.off()
-
 print(p0)
 
 # Linear trend
@@ -283,6 +268,20 @@ p1 <- ggplot(t2,
   theme(axis.text.x = element_text(angle = 45,
                                    hjust = 1),
         plot.title = element_text(hjust = 0))
+
+# Save for publication
+pp1 <- p1 +
+  ggtitle("") +
+  theme(legend.position = "none")
+tiff(filename = "tmp/fig1.tiff",
+     height = 5,
+     width = 6,
+     units = "in",
+     res = 600,
+     compression = "lzw+p")
+print(pp1)
+graphics.off()
+
 p1
 ```
 
@@ -628,20 +627,6 @@ p1 <- ggplot(data = out,
         axis.text.x = element_text(angle = 45,
                                    hjust = 1),
         plot.title = element_text(hjust = 0))
-
-# Save for publication
-p2 <- p1 +
-  ggtitle("") +
-  theme(legend.position = "none")
-tiff(filename = "tmp/fig2.tiff",
-     height = 6,
-     width = 7,
-     units = "in",
-     res = 600,
-     compression = "lzw+p")
-print(p2)
-graphics.off()
-
 print(p1)
 ```
 
@@ -676,6 +661,39 @@ datatable(data = out,
                          pageLength = nrow(out))) %>%
   formatRound(columns = 2:4,
               digits = 3)
+```
+
+```{r rates_plot_with_table, fig.height = 8, fig.width = 8}
+p2 <- p1 +
+  ggtitle("") +
+  theme(legend.position = "none")
+
+out1 <- copy(out)
+
+out1$Slope <- format(round(out1$Slope,
+                           3), 
+                     digits = 3)
+out1$`95% C.I.L.B.` <- format(round(out1$`95% C.I.L.B.`,
+                                    3), 
+                              digits = 3)
+out1$`95% C.I.U.B.` <- format(round(out1$`95% C.I.U.B.`,
+                                    3), 
+                              digits = 3)
+
+tbl <- tableGrob(out1,
+                 rows = NULL)
+
+tiff(filename = "tmp/fig2.tiff",
+     height = 8,
+     width = 8,
+     units = "in",
+     res = 600,
+     compression = "lzw+p")
+grid.arrange(p2,
+             tbl,
+             ncol = 1,
+             heights = c(15, 3, 1))
+graphics.off()
 ```
 
 # Demographics 
@@ -1174,9 +1192,11 @@ p1 <- ggplot(t1yg,
            position = position_dodge(0.9),
            color = "black") +
   scale_x_discrete("Reason for Readmission") +
-  scale_y_continuous("Number of Patients") +
+  scale_y_continuous("Number of Patients (x1,000)",
+                     breaks = seq(0, 45000, by = 5000),
+                     labels = seq(0, 45, by = 5)) +
   geom_text(aes(x = V1,
-                y = N + 5000,
+                y = N + 4500,
                 angle = 0,
                 label = paste(Percent,
                               "%",
@@ -1185,6 +1205,17 @@ p1 <- ggplot(t1yg,
             size = 4,
             position = position_dodge(0.9)) +
   theme(legend.position = "none")
+
+# Save for publication
+tiff(filename = "tmp/fig3.tiff",
+     height = 5,
+     width = 7,
+     units = "in",
+     res = 600,
+     compression = "lzw+p")
+print(p1)
+graphics.off()
+
 p1
 ```
 
@@ -1248,7 +1279,7 @@ datatable(data = tt2,
 No reduction in 30-day HF readmission rates was observed.
 
 # 1-year mortality vs.  days to readmission within 1 year
-```{r time_to_readm_glm, warning=FALSE}
+```{r time_to_readm_glm, warning = FALSE}
 dtreadm <- droplevels(case[!is.na(days2readm), ])
 summary(dtreadm$days2readm)
 p1 <- ggplot(dtreadm,
@@ -1536,6 +1567,15 @@ t2a$followup <- factor(as.character(t2a$followup),
                                   "180-Day",
                                   "1-Year"))
 
+t2a$clr <- 2
+t2a$clr[t2a$lb > 1] <- 1
+t2a$clr[t2a$ub < 1] <- 3
+t2a$clr <- factor(t2a$clr,
+                  levels = 1:3,
+                  labels = c("Increased Risk",
+                             "No Difference",
+                             "Decreased Risk"))
+
 # Save Table 2A as CSV
 t2a$est <- paste(round(t2a$coef, 3),
                  " (",
@@ -1622,16 +1662,22 @@ p2a <- ggplot(t2a,
   geom_errorbar(aes(ymin = lb,
                     ymax = ub),
                 size = 0.4,
-                width = 0.2) +
+                width = 0.8) +
   geom_point(aes(x = names,
                  y = coef,
-                 fill = names),
+                 colour = names,
+                 fill = clr),
              size = 2,
              shape = 21) +
-  scale_fill_manual(labels = paste(1:nlevels(t2a$names),
-                                   levels(t2a$names),
-                                   sep = ": "),
-                    values = rainbow(nlevels(t2a$names))) +
+  scale_color_manual(labels = paste(1:nlevels(t2a$names),
+                                    levels(t2a$names),
+                                    sep = ": "),
+                     values = rainbow(nlevels(t2a$names))) +
+  scale_fill_manual("Risk",
+                    labels = levels(t2a$clr),
+                    values = c("red",
+                               "blue",
+                               "green")) +
   scale_x_discrete("Risk Factors",
                    labels = 1:nlevels(t2a$names)) +
   scale_y_continuous("Odds Ratios") +
@@ -1642,20 +1688,25 @@ p2a <- ggplot(t2a,
                                    vjust = 0.5),
         axis.text.y = element_text(size = 12),
         text = element_text(size = 12),
-        plot.title = element_text(hjust = 0.5)) +
-  guides(fill = guide_legend("Risk Factors Legend"))
+        plot.title = element_text(hjust = 0.5))
 
 # Save for publication
-ppp2a <- p2a +
-  ggtitle("")
-# theme(legend.position = "none")
-tiff(filename = "tmp/fig3.tiff",
+pp2a <- p2a +
+  ggtitle("") +
+  geom_point(aes(x = names,
+                 y = coef,
+                 fill = clr),
+             size = 2,
+             shape = 21,
+             color = "black")+
+  theme(legend.position = "none")
+tiff(filename = "tmp/fig6.tiff",
      height = 5,
-     width = 15,
+     width = 8,
      units = "in",
      res = 600,
      compression = "lzw+p")
-print(ppp2a)
+print(pp2a)
 graphics.off()
 
 print(p2a)
@@ -1663,7 +1714,6 @@ print(p2a)
 
 ## HF Readmissions
 ```{r glm_hf_readm, fig.height = 5, fig.width = 15}
-# Publication/Table 2a: All-cause readmissions----
 case$hf30 <- case$hf90 <- case$hf180 <- case$hf1y <- FALSE
 case$hf30[case$days2post.hf.dx1 < 31] <- TRUE
 case$hf90[case$days2post.hf.dx1 < 91] <- TRUE
@@ -1811,7 +1861,16 @@ t2b$followup <- factor(as.character(t2b$followup),
                                   "180-Day",
                                   "1-Year"))
 
-# Save Table 2B as CSV
+t2b$clr <- 2
+t2b$clr[t2b$lb > 1] <- 1
+t2b$clr[t2b$ub < 1] <- 3
+t2b$clr <- factor(t2b$clr,
+                  levels = 1:3,
+                  labels = c("Increased Risk",
+                             "No Difference",
+                             "Decreased Risk"))
+
+# Save Table 2b as CSV
 t2b$est <- paste(round(t2b$coef, 3),
                  " (",
                  round(t2b$lb, 3),
@@ -1897,16 +1956,22 @@ p2b <- ggplot(t2b,
   geom_errorbar(aes(ymin = lb,
                     ymax = ub),
                 size = 0.4,
-                width = 0.2) +
+                width = 0.8) +
   geom_point(aes(x = names,
                  y = coef,
-                 fill = names),
+                 colour = names,
+                 fill = clr),
              size = 2,
              shape = 21) +
-  scale_fill_manual(labels = paste(1:nlevels(t2b$names),
-                                   levels(t2b$names),
-                                   sep = ": "),
-                    values = rainbow(nlevels(t2b$names))) +
+  scale_color_manual(labels = paste(1:nlevels(t2b$names),
+                                    levels(t2b$names),
+                                    sep = ": "),
+                     values = rainbow(nlevels(t2b$names))) +
+  scale_fill_manual("Risk",
+                    labels = levels(t2b$clr),
+                    values = c("red",
+                               "blue",
+                               "green")) +
   scale_x_discrete("Risk Factors",
                    labels = 1:nlevels(t2b$names)) +
   scale_y_continuous("Odds Ratios") +
@@ -1917,20 +1982,25 @@ p2b <- ggplot(t2b,
                                    vjust = 0.5),
         axis.text.y = element_text(size = 12),
         text = element_text(size = 12),
-        plot.title = element_text(hjust = 0.5)) +
-  guides(fill = guide_legend("Risk Factors Legend"))
+        plot.title = element_text(hjust = 0.5))
 
 # Save for publication
-ppp2b <- p2b +
-  ggtitle("")
-# theme(legend.position = "none")
-tiff(filename = "tmp/fig6.tiff",
+pp2b <- p2b +
+  ggtitle("") +
+  geom_point(aes(x = names,
+                 y = coef,
+                 fill = clr),
+             size = 2,
+             shape = 21,
+             color = "black")+
+  theme(legend.position = "none")
+tiff(filename = "tmp/fig7.tiff",
      height = 5,
-     width = 15,
+     width = 8,
      units = "in",
      res = 600,
      compression = "lzw+p")
-print(ppp2b)
+print(pp2b)
 graphics.off()
 
 print(p2b)
@@ -1938,7 +2008,6 @@ print(p2b)
 
 ## All-Cause Death
 ```{r glmAllCauseDeath, fig.height = 5, fig.width = 15}
-# Publication/Table 2c: All-cause death----
 case$dead30 <- case$dead90 <- case$dead180 <- case$dead1y <- FALSE
 case$dead30[case$days2death < 31] <- TRUE
 case$dead90[case$days2death < 91] <- TRUE
@@ -2086,6 +2155,15 @@ t2c$followup <- factor(as.character(t2c$followup),
                                   "180-Day",
                                   "1-Year"))
 
+t2c$clr <- 2
+t2c$clr[t2c$lb > 1] <- 1
+t2c$clr[t2c$ub < 1] <- 3
+t2c$clr <- factor(t2c$clr,
+                  levels = 1:3,
+                  labels = c("Increased Risk",
+                             "No Difference",
+                             "Decreased Risk"))
+
 # Save Table 2c as CSV
 t2c$est <- paste(round(t2c$coef, 3),
                  " (",
@@ -2172,16 +2250,22 @@ p2c <- ggplot(t2c,
   geom_errorbar(aes(ymin = lb,
                     ymax = ub),
                 size = 0.4,
-                width = 0.2) +
+                width = 0.8) +
   geom_point(aes(x = names,
                  y = coef,
-                 fill = names),
+                 colour = names,
+                 fill = clr),
              size = 2,
              shape = 21) +
-  scale_fill_manual(labels = paste(1:nlevels(t2c$names),
-                                   levels(t2c$names),
-                                   sep = ": "),
-                    values = rainbow(nlevels(t2c$names))) +
+  scale_color_manual(labels = paste(1:nlevels(t2c$names),
+                                    levels(t2c$names),
+                                    sep = ": "),
+                     values = rainbow(nlevels(t2c$names))) +
+  scale_fill_manual("Risk",
+                    labels = levels(t2c$clr),
+                    values = c("red",
+                               "blue",
+                               "green")) +
   scale_x_discrete("Risk Factors",
                    labels = 1:nlevels(t2c$names)) +
   scale_y_continuous("Odds Ratios") +
@@ -2192,20 +2276,25 @@ p2c <- ggplot(t2c,
                                    vjust = 0.5),
         axis.text.y = element_text(size = 12),
         text = element_text(size = 12),
-        plot.title = element_text(hjust = 0.5)) +
-  guides(fill = guide_legend("Risk Factors Legend"))
+        plot.title = element_text(hjust = 0.5))
 
 # Save for publication
-ppp2c <- p2c +
-  ggtitle("")
-# theme(legend.position = "none")
-tiff(filename = "tmp/fig7.tiff",
+pp2c <- p2c +
+  ggtitle("") +
+  geom_point(aes(x = names,
+                 y = coef,
+                 fill = clr),
+             size = 2,
+             shape = 21,
+             color = "black")+
+  theme(legend.position = "none")
+tiff(filename = "tmp/fig8.tiff",
      height = 5,
-     width = 15,
+     width = 8,
      units = "in",
      res = 600,
      compression = "lzw+p")
-print(ppp2c)
+print(pp2c)
 graphics.off()
 
 print(p2c)
@@ -2213,7 +2302,6 @@ print(p2c)
 
 ## CV Death
 ```{r glmCVdeath, fig.height = 5, fig.width = 15}
-# Publication/Table 2d: All-cause readmissions----
 case$cvdeath30 <- case$cvdeath90 <- case$cvdeath180 <- case$cvdeath1y <- FALSE
 case$cvdeath30[case$days2cvdeath < 31] <- TRUE
 case$cvdeath90[case$days2cvdeath < 91] <- TRUE
@@ -2361,7 +2449,16 @@ t2d$followup <- factor(as.character(t2d$followup),
                                   "180-Day",
                                   "1-Year"))
 
-# Save Table 2D as CSV
+t2d$clr <- 2
+t2d$clr[t2d$lb > 1] <- 1
+t2d$clr[t2d$ub < 1] <- 3
+t2d$clr <- factor(t2d$clr,
+                  levels = 1:3,
+                  labels = c("Increased Risk",
+                             "No Difference",
+                             "Decreased Risk"))
+
+# Save Table 2d as CSV
 t2d$est <- paste(round(t2d$coef, 3),
                  " (",
                  round(t2d$lb, 3),
@@ -2402,7 +2499,7 @@ t2d$names <- factor(t2d$names,
                     levels = lvls)
 
 datatable(data = tmp2d,
-          caption = "Table2d: CV Death",
+          caption = "Table2D: CV Death",
           class = "cell-border stripe",
           rownames = FALSE,
           options = list(searching = TRUE,
@@ -2447,16 +2544,22 @@ p2d <- ggplot(t2d,
   geom_errorbar(aes(ymin = lb,
                     ymax = ub),
                 size = 0.4,
-                width = 0.2) +
+                width = 0.8) +
   geom_point(aes(x = names,
                  y = coef,
-                 fill = names),
+                 colour = names,
+                 fill = clr),
              size = 2,
              shape = 21) +
-  scale_fill_manual(labels = paste(1:nlevels(t2d$names),
-                                   levels(t2d$names),
-                                   sep = ": "),
-                    values = rainbow(nlevels(t2d$names))) +
+  scale_color_manual(labels = paste(1:nlevels(t2d$names),
+                                    levels(t2d$names),
+                                    sep = ": "),
+                     values = rainbow(nlevels(t2d$names))) +
+  scale_fill_manual("Risk",
+                    labels = levels(t2d$clr),
+                    values = c("red",
+                               "blue",
+                               "green")) +
   scale_x_discrete("Risk Factors",
                    labels = 1:nlevels(t2d$names)) +
   scale_y_continuous("Odds Ratios") +
@@ -2467,36 +2570,40 @@ p2d <- ggplot(t2d,
                                    vjust = 0.5),
         axis.text.y = element_text(size = 12),
         text = element_text(size = 12),
-        plot.title = element_text(hjust = 0.5)) +
-  guides(fill = guide_legend("Risk Factors Legend"))
+        plot.title = element_text(hjust = 0.5))
 
 # Save for publication
-ppp2d <- p2d +
-  ggtitle("")
-# theme(legend.position = "none")
-tiff(filename = "tmp/fig8.tiff",
+pp2d <- p2d +
+  ggtitle("") +
+  geom_point(aes(x = names,
+                 y = coef,
+                 fill = clr),
+             size = 2,
+             shape = 21,
+             color = "black")+
+  theme(legend.position = "none")
+tiff(filename = "tmp/fig9.tiff",
      height = 5,
-     width = 15,
+     width = 8,
      units = "in",
      res = 600,
      compression = "lzw+p")
-print(ppp2d)
+print(pp2d)
 graphics.off()
 
 print(p2d)
 ```
 
-# Association of 1-Year Readmission with 2-Year All-Cause Mortality
-## 2-year all-cause mortality vs. 1-year readmission, unadjusted logistic model
-```{r death2y_readm1y_unadj}
-# All-cause death within 2 years
-case2$dead2y <- FALSE
-case2$dead2y[case2$days2death < 2*365.25] <- TRUE
+# Association of 1-Year Readmission with 3-Year All-Cause Mortality
+## 3-year all-cause mortality vs. 1-year readmission, unadjusted logistic model
+```{r death3y_readm1y_unadj}
+case2$dead3y <- FALSE
+case2$dead3y[case2$days2death < 3*365.25] <- TRUE
 
-mm1.2y <- glm(dead2y ~ readm1y,
+mm1.3y <- glm(dead3y ~ readm1y,
               family = binomial(logit),
               data = case2)
-ss1 <-summary(mm1.2y)
+ss1 <-summary(mm1.3y)
 
 out1 <- data.table(names = "Readmitted within 1 year",
                    coef = round(exp(ss1$coefficients[-1, 1]), 3),
@@ -2511,15 +2618,15 @@ out1 <- data.table(names = "Readmitted within 1 year",
                                         "*"), ""))
 datatable(out1)
 ```
-Risk of death within 2 years from initial HF discharge was significantly higher in patients who were readmitted for any cause within 1 year from the said discharge (OR = 1.54, 95% C.I. = 1.49 to 1.59, p-value < 0.001).
+Risk of death within 3 years from initial HF discharge was significantly higher in patients who were readmitted for any cause within 1 year from the said discharge (OR = 1.63, 95% C.I. = 1.59 to 1.68, p-value < 0.001).
 
-## 2-year all-cause death vs. 1-year readmission, adjusted for all covariates
-```{r death2y_readm1y_adj, fig.height = 5, fig.width = 15}
+## 3-year all-cause death vs. 1-year readmission, adjusted for all covariates
+```{r death3y_readm1y_adj, fig.height = 5, fig.width = 15}
 # Remove patients from hosps with no info
 tmp <- droplevels(case2[Area != "Unknown", ])
 # 3,353 patients with no info about the admission hospital were removed; 89,893 remained
 
-mm2.2y <- glm(dead2y ~ readm1y +
+mm2.3y <- glm(dead3y ~ readm1y +
                 DSCYR +
                 decade +
                 SEX +
@@ -2544,7 +2651,7 @@ mm2.2y <- glm(dead2y ~ readm1y +
                 Teach,
               family = binomial(logit),
               data = tmp)
-ss1 <-summary(mm2.2y)
+ss1 <-summary(mm2.3y)
 
 out2 <- data.table(Level = rownames(ss1$coefficients)[-1],
                    names = c("1-Year All-Cause Readmission",
@@ -2568,8 +2675,17 @@ out2 <- out2[order(out2$coef,
 out2$names <- factor(out2$names,
                      levels = out2$names)
 
-datatable(data = out2,
-          caption = "Table: 2-year cause of death vs. 1-year readmission, adjusted",
+out2$clr <- 2
+out2$clr[out2$lb > 1] <- 1
+out2$clr[out2$ub < 1] <- 3
+out2$clr <- factor(out2$clr,
+                   levels = 1:3,
+                   labels = c("Increased Risk",
+                              "No Difference",
+                              "Decreased Risk"))
+
+datatable(data = out2[, -ncol(out2), with = FALSE],
+          caption = "Table: 3-year cause of death vs. 1-year readmission, adjusted",
           class = "cell-border stripe",
           rownames = FALSE,
           options = list(searching = FALSE,
@@ -2588,20 +2704,26 @@ p1 <- ggplot(out2,
   geom_errorbar(aes(ymin = lb,
                     ymax = ub),
                 size = 0.4,
-                width = 0.2) +
+                width = 0.8) +
   geom_point(aes(x = names,
                  y = coef,
-                 fill = names),
+                 colour = names,
+                 fill = clr),
              size = 2,
              shape = 21) +
-  scale_fill_manual(labels = paste(1:nlevels(out2$names),
-                                   levels(out2$names),
-                                   sep = ": "),
-                    values = rainbow(nlevels(out2$names))) +
+  scale_color_manual(labels = paste(1:nlevels(out2$names),
+                                    levels(out2$names),
+                                    sep = ": "),
+                     values = rainbow(nlevels(out2$names))) +
+  scale_fill_manual("Risk",
+                    labels = levels(out2$clr),
+                    values = c("red",
+                               "blue",
+                               "green")) +
   scale_x_discrete("Risk Factors",
                    labels = 1:nlevels(out2$names)) +
   scale_y_continuous("Odds Ratios") +
-  ggtitle("Odds Ratios of 2-Year All-Cause Death") +
+  ggtitle("Odds Ratios of 3-Year All-Cause Death") +
   theme(axis.text.x = element_text(angle = 90,
                                    size = 12,
                                    hjust = 1,
@@ -2610,15 +2732,35 @@ p1 <- ggplot(out2,
         text = element_text(size = 12),
         plot.title = element_text(hjust = 0.5)) +
   guides(fill = guide_legend("Risk Factors Legend"))
+
+# Save for publication
+pp1 <- p1 +
+  ggtitle("") +
+  geom_point(aes(x = names,
+                 y = coef,
+                 fill = clr),
+             size = 2,
+             shape = 21,
+             color = "black")+
+  theme(legend.position = "none")
+tiff(filename = "tmp/fig5.tiff",
+     height = 5,
+     width = 8,
+     units = "in",
+     res = 600,
+     compression = "lzw+p")
+print(pp1)
+graphics.off()
+
 print(p1)
 ```
 
-The 2-year risk of death remained significantly higher in patients who were readmitted for any cause within 1 year from the said discharge after adjusting for all covariates (OR = 1.49, 95% C.I. = 1.45 to 1.54, p-value < 0.001).
+The 3-year risk of death remained significantly higher in patients who were readmitted for any cause within 1 year from the said discharge after adjusting for all covariates (OR = 1.49, 95% C.I. = 1.45 to 1.54, p-value < 0.001).
 
-## 2-year mortality
-```{r death2y_vs_readm1y}
+## 3-year mortality
+```{r death3y_vs_readm1y}
 t7 <- addmargins(table(case2$group,
-                       case2$dead2y))
+                       case2$dead3y))
 
 tab7 <- data.table(Reason = rownames(t7),
                    Alive = format(t7[, 1],
@@ -2650,35 +2792,35 @@ setkey(tab7,
        Reason)
 
 datatable(tab7,
-          caption = "Table: number and percent dead in 2 years",
+          caption = "Table: number and percent dead in 3 years",
           class = "cell-border stripe",
           rownames = FALSE,
           options = list(searching = TRUE,
-                         pageLength = nrow(table2d)))
+                         pageLength = nrow(tab7)))
 ```
 
-```{r death2y_vs_readm1y_plot, fig.height = 6,fig.width = 8}
+```{r death3y_vs_readm1y_plot, fig.height = 6,fig.width = 8}
 tab7$Alive <- t7[, 1]
 tab7$Dead <- t7[, 2]
 
 stts <- melt.data.table(data = tab7,
                         id.vars = 1,
                         measure.vars = c(2, 4),
-                        variable.name = "2-Year Status",
+                        variable.name = "3-Year Status",
                         value.name = "N")
 tmp <- melt.data.table(data = tab7,
                        id.vars = 1,
                        measure.vars = c(3, 5),
-                       variable.name = "2-Year Status",
+                       variable.name = "3-Year Status",
                        value.name = "Percent")
-tmp$`2-Year Status` <- gsub(pattern = "_Pct",
+tmp$`3-Year Status` <- gsub(pattern = "_Pct",
                             replacement = "",
-                            x = tmp$`2-Year Status`)
+                            x = tmp$`3-Year Status`)
 stts <- merge(stts, 
               tmp,
               by = c("Reason",
-                     "2-Year Status"))
-stts$`2-Year Status` <- factor(stts$`2-Year Status`,
+                     "3-Year Status"))
+stts$`3-Year Status` <- factor(stts$`3-Year Status`,
                                levels = c("Dead",
                                           "Alive"))
 stts <- droplevels(stts[!(Reason %in% c("Not Readmitted",
@@ -2688,30 +2830,35 @@ stts$Reason <- factor(stts$Reason,
                                  "Cerebrovascular",
                                  "Procedures",
                                  "AMI",
-                                 "Hypertension",
-                                 "Diabetes mellitus",
-                                 "General symptoms",
-                                 "Infections",
-                                 "Kidney Disease",
-                                 "Arrhythmia",
-                                 "Heart Disease",
                                  "Respiratory",
+                                 "Diabetes mellitus",
+                                 "Hypertension",
+                                 "General symptoms",
+                                 "Kidney Disease",
+                                 "Infections",
+                                 "Heart Disease",
+                                 "Arrhythmia",
                                  "Heart failure"))
 
 p1 <- ggplot(stts,
              aes(x = Reason,
                  y = N,
-                 group = `2-Year Status`,
-                 fill = `2-Year Status`)) +
+                 group = `3-Year Status`,
+                 fill = `3-Year Status`)) +
   coord_flip() +
   geom_bar(stat = "identity",
            position = position_dodge(0.9)) +
   scale_x_discrete("Reason for Readmission") +
-  scale_y_continuous("Number of Patients",
-                     breaks = seq(0, 12000, by = 1000)) +
+  scale_y_continuous("Number of Patients (x1,000)",
+                     breaks = seq(0,
+                                  11000, 
+                                  by = 1000),
+                     labels = seq(0,
+                                  11,
+                                  by = 1)) +
   scale_fill_discrete("Status") +
   geom_text(aes(x = Reason,
-                y = N + 1500,
+                y = N + 1200,
                 angle = 0,
                 label = paste(Percent,
                               "%",
@@ -2719,10 +2866,10 @@ p1 <- ggplot(stts,
             hjust = 1,
             size = 4,
             position = position_dodge(0.9)) +
-  theme(axis.text.x = element_text(angle = 45,
+  theme(axis.text.x = element_text(angle = 0,
                                    hjust = 1))
 
-tiff(filename = "tmp/fig5.tiff",
+tiff(filename = "tmp/fig10.tiff",
      height = 6,
      width = 8,
      units = "in",
@@ -2734,8 +2881,8 @@ graphics.off()
 print(p1)
 ```
 
-## Odds ratios of 2-year all-cause death by reason for readmission, vs. HF readmission
-```{r death2y_vs_readm1y_reason-ref_hf, fig.height = 5, fig.width = 5}
+## Odds ratios of 3-year all-cause death by reason for readmission, vs. HF readmission
+```{r death3y_vs_readm1y_reason-ref_hf, fig.height = 5, fig.width = 5}
 lvls <- c("Heart failure",
           "AMI",
           "Infections",
@@ -2754,12 +2901,12 @@ lvls <- c("Heart failure",
 case2$group <- factor(case2$group,
                       levels = lvls)
 
-mm3.2y <- glm(dead2y ~ group,
+mm3.3y <- glm(dead3y ~ group,
               family = binomial(logit),
               data = case2)
 
 # Combine
-ss1 <- (summary(mm3.2y))
+ss1 <- (summary(mm3.3y))
 
 out3 <- data.table(names = factor(levels(case2$group)[-1],
                                   levels = levels(case2$group)[-1]),
@@ -2775,7 +2922,7 @@ out3 <- data.table(names = factor(levels(case2$group)[-1],
                                         "*"), ""))
 
 datatable(out3,
-          caption = "Table: 2-year mortality vs. reason for readmission",
+          caption = "Table: 3-year mortality vs. reason for readmission",
           class = "cell-border stripe",
           rownames = FALSE,
           options = list(searching = TRUE,
@@ -2804,22 +2951,12 @@ p4 <- ggplot(out3,
   scale_y_continuous("Odds Ratios") +
   theme(legend.position = "none")
 
-# Save for publication
-tiff(filename = "tmp/fig4.tiff",
-     height = 5,
-     width = 5,
-     units = "in",
-     res = 600,
-     compression = "lzw+p")
-print(p4)
-graphics.off()
-
 p4
 ```
-Compare to risk of 2-year (from the index HF discharge) all-cause mortality after the first HF readmission, not being readmitted or being readmitted for the first time for heart disease, respiratory problems, arrhythmia, diabetes, general symptoms, hypertension, procedures or other reasons decreased the risk. On the other hand, readmission for kidney disease or infections increased the risk.
+Compare to risk of 3-year (from the index HF discharge) all-cause mortality after the first HF readmission, not being readmitted or being readmitted for the first time for heart disease, respiratory problems, arrhythmia, diabetes, general symptoms, hypertension, procedures or other reasons decreased the risk. On the other hand, readmission for kidney disease or infections increased the risk.
 
-## Odds ratios of 2-year all-cause death by reason for readmission, vs. no readmission
-```{r death2y_vs_readm1y_reason-ref_noreadm, fig.height = 5, fig.width = 5}
+## Odds ratios of 3-year all-cause death by reason for readmission, vs. no readmission
+```{r death3y_vs_readm1y_reason-ref_noreadm, fig.height = 5, fig.width = 5}
 lvls <- c("Not Readmitted",
           "AMI",
           "Infections",
@@ -2838,12 +2975,12 @@ lvls <- c("Not Readmitted",
 case2$group <- factor(case2$group,
                       levels = lvls)
 
-mm3.2y <- glm(dead2y ~ group,
+mm3.3y <- glm(dead3y ~ group,
               family = binomial(logit),
               data = case2)
 
 # Combine
-ss1 <- (summary(mm3.2y))
+ss1 <- (summary(mm3.3y))
 
 out3 <- data.table(names = factor(levels(case2$group)[-1],
                                   levels = levels(case2$group)[-1]),
@@ -2859,7 +2996,7 @@ out3 <- data.table(names = factor(levels(case2$group)[-1],
                                         "*"), ""))
 
 datatable(out3,
-          caption = "Table: 2-year mortality vs. reason for readmission",
+          caption = "Table: 3-year mortality vs. reason for readmission",
           class = "cell-border stripe",
           rownames = FALSE,
           options = list(searching = TRUE,
@@ -2867,6 +3004,15 @@ datatable(out3,
 
 out3$names <- factor(out3$names,
                      levels = rev(levels(out3$names)))
+
+out3$clr <- 2
+out3$clr[out3$lb > 1] <- 1
+out3$clr[out3$ub < 1] <- 3
+out3$clr <- factor(out3$clr,
+                   levels = 1:3,
+                   labels = c("Increased Risk",
+                              "No Difference",
+                              "Decreased Risk"))
 p4 <- ggplot(out3,
              aes(x = names,
                  y = coef)) +
@@ -2878,18 +3024,23 @@ p4 <- ggplot(out3,
   geom_errorbar(aes(ymin = lb,
                     ymax = ub),
                 size = 0.4,
-                width = 0.2) +
+                width = 0.8) +
   geom_point(aes(x = names,
                  y = coef,
-                 fill = names),
+                 fill = clr),
              size = 2,
              shape = 21) +
   scale_x_discrete("") +
   scale_y_continuous("Odds Ratios") +
+  scale_fill_manual("Risk",
+                    labels = levels(out3$clr),
+                    values = c("red",
+                               "blue",
+                               "green")) +
   theme(legend.position = "none")
 
 # Save for publication
-tiff(filename = "tmp/fig5.tiff",
+tiff(filename = "tmp/fig4.tiff",
      height = 5,
      width = 5,
      units = "in",

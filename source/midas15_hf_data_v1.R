@@ -3,7 +3,7 @@
 # | Script: Make the data set for the analysis                                       |
 # | Authors: Michail Giakoumis; Davit Sargsyan                                       |   
 # | Created: 04/05/2019                                                              |
-# | Modified:                                                                        |
+# | Modified: 07/12/2019: removed duplicated 'Patient_ID' column                     |
 # |----------------------------------------------------------------------------------|
 # Header----
 # Save consol output to a log file
@@ -389,7 +389,6 @@ dt2
 # Outcomes and histories (prior to 1st HF discharge)----
 system.time(
   hh <- dt2[, list(Record_ID,
-                   Patient_ID,
                    patbdte,
                    NEWDTD,
                    CAUSE,
@@ -467,9 +466,9 @@ system.time(
                    htia = (sum(tia & prior) > 0)),
             by = Patient_ID]
 )
-# 05/17/2019
+# 07/12/2019
 # user  system elapsed 
-# 231.19    0.25  233.61 
+# 224.20    0.58  227.00 
 
 # Reason for readmission----
 hh[, readm.dx1 := DX1[ADMDAT == readm.dat][1],
