@@ -108,6 +108,10 @@ t1 <- merge(t1,
             dt.age,
             by = "Year")
 
+write.csv(t1,
+          file = "tmp/table1.csv",
+          row.names = FALSE)
+
 datatable(t1,
           caption = "Table 1: Number of first HF discharges by year",
           rownames = FALSE,
@@ -346,6 +350,10 @@ colnames(t1a.apx) <- c("HF Discharge Year",
                        "90-Day",
                        "180-Day",
                        "1-Year")
+write.csv(t1a.apx,
+          file = "tmp/table3a.apx.csv",
+          row.names = FALSE)
+
 datatable(t1a.apx,
           caption = "Table 3a: all-cause readmissions (%)",
           rownames = FALSE,
@@ -405,6 +413,10 @@ colnames(t1b.apx) <- c("HF Discharge Year",
                        "90-Day",
                        "180-Day",
                        "1-Year")
+write.csv(t1b.apx,
+          file = "tmp/table3b.apx.csv",
+          row.names = FALSE)
+
 datatable(t1b.apx,
           caption = "Table 3b: HF readmissions (%)",
           rownames = FALSE,
@@ -464,6 +476,10 @@ colnames(t1c.apx) <- c("HF Discharge Year",
                        "90-Day",
                        "180-Day",
                        "1-Year")
+write.csv(t1c.apx,
+          file = "tmp/table3c.apx.csv",
+          row.names = FALSE)
+
 datatable(t1c.apx,
           caption = "Table 3c: all-cause death (%)",
           rownames = FALSE,
@@ -523,6 +539,10 @@ colnames(t1d.apx) <- c("HF Discharge Year",
                        "90-Day",
                        "180-Day",
                        "1-Year")
+write.csv(t1d.apx,
+          file = "tmp/table3d.apx.csv",
+          row.names = FALSE)
+
 datatable(t1d.apx,
           caption = "Table 3d: CV death (%)",
           rownames = FALSE,
@@ -652,6 +672,9 @@ for (i in 1:length(t1.apx)) {
                                                       "*"), ""))
 }
 out <- rbindlist(out)
+write.csv(out,
+          file = "tmp/table2.apx.csv",
+          row.names = FALSE)
 
 datatable(data = out,
           caption = "Table: Linear Trends of 1-Year Outcomes",
@@ -708,9 +731,9 @@ table1 <- data.table(Description = c("Mean Age at First AMI Admission +/- S.D",
                                      "* Other",
                                      "Ethnicity (%)",
                                      "* Hispanic",
-                                     "* Non-hispanic",
+                                     "* Non-Hispanic",
                                      "* Unknown",
-                                     "Insurance(%)",
+                                     "Insurance (%)",
                                      "* Commercial",
                                      "* Medicare",
                                      "* Medicaid/Self-Pay/Other",
@@ -836,10 +859,11 @@ table1 <- data.table(Description = c("Mean Age at First AMI Admission +/- S.D",
 
 # Save Table1 as CSV
 write.csv(table1,
-          file = "tmp/table1.csv")
+          file = "tmp/table2.csv",
+          row.names = FALSE)
 
 datatable(table1,
-          caption = "Table 2: HF pateints' characteristics",
+          caption = "Table 2: HF patients' characteristics",
           rownames = FALSE,
           class = "cell-border stripe",
           options = list(searching = TRUE,
@@ -1615,6 +1639,8 @@ tmp2a$`Risk Factor` <- factor(tmp2a$`Risk Factor`,
                               levels = lvls)
 t2a$names <- factor(t2a$names,
                     levels = lvls)
+write.csv(tmp2a,
+          file = "tmp/table3.csv")
 
 datatable(data = tmp2a,
           caption = "Table2A: All-Cause Readmissions",
@@ -1909,6 +1935,8 @@ tmp2b$`Risk Factor` <- factor(tmp2b$`Risk Factor`,
                               levels = lvls)
 t2b$names <- factor(t2b$names,
                     levels = lvls)
+write.csv(tmp2b,
+          file = "tmp/table4.csv")
 
 datatable(data = tmp2b,
           caption = "Table2B: HF Readmissions",
@@ -2203,6 +2231,8 @@ tmp2c$`Risk Factor` <- factor(tmp2c$`Risk Factor`,
                               levels = lvls)
 t2c$names <- factor(t2c$names,
                     levels = lvls)
+write.csv(tmp2c,
+          file = "tmp/table5.csv")
 
 datatable(data = tmp2c,
           caption = "Table2C: All-Cause Death",
@@ -2597,8 +2627,16 @@ print(p2d)
 # Association of 1-Year Readmission with 3-Year All-Cause Mortality
 ## 3-year all-cause mortality vs. 1-year readmission, unadjusted logistic model
 ```{r death3y_readm1y_unadj}
+# Keep only the patients discharged before 2013 
+# => everyone has at least 3-year follow-up
+case2 <- case2[DSCYR < 2013, ]
+print(paste("Number of patients discharged between 2000 and 2012 =",
+            nrow(case2)))
+
 case2$dead3y <- FALSE
 case2$dead3y[case2$days2death < 3*365.25] <- TRUE
+
+# 
 
 mm1.3y <- glm(dead3y ~ readm1y,
               family = binomial(logit),
@@ -2618,7 +2656,7 @@ out1 <- data.table(names = "Readmitted within 1 year",
                                         "*"), ""))
 datatable(out1)
 ```
-Risk of death within 3 years from initial HF discharge was significantly higher in patients who were readmitted for any cause within 1 year from the said discharge (OR = 1.63, 95% C.I. = 1.59 to 1.68, p-value < 0.001).
+Risk of death within 3 years from initial HF discharge was significantly higher in patients who were readmitted for any cause within 1 year from the said discharge (OR = 1.66, 95% C.I. = 1.62 to 1.71, p-value < 0.001).
 
 ## 3-year all-cause death vs. 1-year readmission, adjusted for all covariates
 ```{r death3y_readm1y_adj, fig.height = 5, fig.width = 15}
@@ -2886,8 +2924,8 @@ print(p1)
 lvls <- c("Heart failure",
           "AMI",
           "Infections",
-          "Cerebrovascular",
           "Kidney Disease",
+          "Cerebrovascular",
           "Respiratory",
           "Hypertension",
           "Diabetes mellitus",
@@ -2960,8 +2998,8 @@ Compare to risk of 3-year (from the index HF discharge) all-cause mortality afte
 lvls <- c("Not Readmitted",
           "AMI",
           "Infections",
-          "Cerebrovascular",
           "Kidney Disease",
+          "Cerebrovascular",
           "Heart failure",
           "Respiratory",
           "Hypertension",

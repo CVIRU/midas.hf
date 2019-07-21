@@ -14,6 +14,9 @@
 [References](#ref)   
 
 ## Daily Log<a name="log"></a>
+### 07/20/2019
+* 3-year all-cause mortality after first readmission.
+
 ### 07/12/2019
 * Finalized 5 figures for the publication
 
