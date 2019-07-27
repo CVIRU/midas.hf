@@ -661,8 +661,13 @@ for (i in 1:length(t1.apx)) {
   s1 <- summary(m1)
   out[[i]] <- data.table(Outcome = names(t1.apx)[[i]],
                          Slope = s1$coefficients[-1, 1],
-                         `95% C.I.L.B.` = s1$coefficients[-1, 1] - 1.96*s1$coefficients[-1, 2],
-                         `95% C.I.U.B.` = s1$coefficients[-1, 1] + 1.96*s1$coefficients[-1, 2],
+                         `95% CI` = paste(round(s1$coefficients[-1, 1] - 
+                                                  1.96*s1$coefficients[-1, 2],
+                                                3),
+                                          round(s1$coefficients[-1, 1] + 
+                                                  1.96*s1$coefficients[-1, 2],
+                                                3),
+                                          sep = " to "),
                          `p-Value` = ifelse(s1$coefficients[-1, 4] >= 0.001,
                                             round(s1$coefficients[-1, 4], 3),
                                             "<0.001"),
@@ -682,7 +687,7 @@ datatable(data = out,
           rownames = FALSE,
           options = list(searching = TRUE,
                          pageLength = nrow(out))) %>%
-  formatRound(columns = 2:4,
+  formatRound(columns = c(2, 4),
               digits = 3)
 ```
 
@@ -696,12 +701,6 @@ out1 <- copy(out)
 out1$Slope <- format(round(out1$Slope,
                            3), 
                      digits = 3)
-out1$`95% C.I.L.B.` <- format(round(out1$`95% C.I.L.B.`,
-                                    3), 
-                              digits = 3)
-out1$`95% C.I.U.B.` <- format(round(out1$`95% C.I.U.B.`,
-                                    3), 
-                              digits = 3)
 
 tbl <- tableGrob(out1,
                  rows = NULL)
@@ -715,7 +714,7 @@ tiff(filename = "tmp/fig2.tiff",
 grid.arrange(p2,
              tbl,
              ncol = 1,
-             heights = c(15, 3, 1))
+             heights = c(15, 2, 1))
 graphics.off()
 ```
 
@@ -724,7 +723,7 @@ graphics.off()
 # Pubication/Table1: Demographics----
 # summary(case)
 table1 <- data.table(Description = c("Mean Age at First AMI Admission +/- S.D",
-                                     "Female (%)",
+                                     "Male (%)",
                                      "Race (%)",
                                      "* White",
                                      "* Black",
@@ -756,7 +755,7 @@ table1 <- data.table(Description = c("Mean Age at First AMI Admission +/- S.D",
                                                     "+/-",
                                                     round(sd(case$AGE), 1),
                                                     sep = ""),
-                                              format(sum(case$SEX == "F"),
+                                              format(sum(case$SEX == "M"),
                                                      big.mark = ","),
                                               "",
                                               format(sum(case$RACE == "White"),
@@ -882,8 +881,8 @@ case$cvdeath1y[case$days2cvdeath < 366] <- TRUE
 # 1-year outcomes vs. demographics
 ```{r demog_glm}
 case$SEX <- factor(case$SEX,
-                   levels = c("M", 
-                              "F"))
+                   levels = c("F", 
+                              "M"))
 m1a.1y <- glm(readm1y ~ decade +
                 SEX +
                 RACE +
@@ -931,13 +930,13 @@ for (i in 1:4) {
   a <- s1[[i]]
   out <- data.table(Row = rownames(a$coefficients)[-1],
                     Covariate = c("Age (x10)",
-                                  "Female vs. Male",
+                                  "Male vs. Female",
                                   "Race:Black vs. White",
                                   "Race:Other vs.White",
                                   "Ethnisity:Non-Hispanic vs. Hispanic",
                                   "Ethnisity:Unknown vs. Hispanic",
-                                  "Insurance:Commercial vs. Private",
-                                  "Insurance:Medicaid/Self-Pay/Other vs. Private"),
+                                  "Insurance:Commercial vs. Medicare",
+                                  "Insurance:Medicaid/Self-Pay/Other vs. Medicare"),
                     OR = exp(a$coefficients[-1, 1]),
                     `95% C.I.L.B.` = exp(a$coefficients[-1, 1] - 1.96*a$coefficients[-1, 2]),
                     `95% C.I.U.B.` = exp(a$coefficients[-1, 1] + 1.96*a$coefficients[-1, 2]),
@@ -1188,7 +1187,7 @@ case2$group <- factor(case2$group,
 case2$readm1y <- case2$group != "Not Readmitted"
 ```
 
-```{r reason_for_readm, fig.height = 5, fig.width = 7}
+```{r reason_for_readm, fig.height = 4, fig.width = 6}
 t1yg <- data.table(table(case2$group))
 t1yg$Percent <- round(100*t1yg$N/sum(t1yg$N), 1)
 t1yg$V1 <- factor(t1yg$V1,
@@ -1220,7 +1219,7 @@ p1 <- ggplot(t1yg,
                      breaks = seq(0, 45000, by = 5000),
                      labels = seq(0, 45, by = 5)) +
   geom_text(aes(x = V1,
-                y = N + 4500,
+                y = N + 5500,
                 angle = 0,
                 label = paste(Percent,
                               "%",
@@ -1232,8 +1231,8 @@ p1 <- ggplot(t1yg,
 
 # Save for publication
 tiff(filename = "tmp/fig3.tiff",
-     height = 5,
-     width = 7,
+     height = 4,
+     width = 6,
      units = "in",
      res = 600,
      compression = "lzw+p")
@@ -1387,13 +1386,13 @@ paste(format(nrow(case1[Area == "Unknown", ]),
 ```{r labels}
 t2.names <- c("Discharge year",
               "Age (X10)",
-              "Female vs. Male",
+              "Male vs. Female",
               "Race:Black vs. White",
               "Race:Other vs.White",
               "Ethnisity:Non-Hispanic vs. Hispanic",
               "Ethnisity:Unknown vs. Hispanic",
-              "Insurance:Commercial vs. Private",
-              "Insurance:Medicaid/Self-Pay/Other vs. Private",
+              "Insurance:Commercial vs. Medicare",
+              "Insurance:Medicaid/Self-Pay/Other vs. Medicare",
               "Length of Stay",
               "AFib/AFlutter",
               "AMI",
@@ -1726,6 +1725,7 @@ pp2a <- p2a +
              shape = 21,
              color = "black")+
   theme(legend.position = "none")
+
 tiff(filename = "tmp/fig6.tiff",
      height = 5,
      width = 8,
@@ -2731,6 +2731,9 @@ datatable(data = out2[, -ncol(out2), with = FALSE],
   formatRound(columns = 3:5,
               digits = 3)
 
+write.csv(out2,
+          file = "tmp/legend_for_fig5.csv")
+
 # Plot OR----
 p1 <- ggplot(out2,
              aes(x = names,
@@ -2989,6 +2992,16 @@ p4 <- ggplot(out3,
   scale_y_continuous("Odds Ratios") +
   theme(legend.position = "none")
 
+# Save for publication
+tiff(filename = "tmp/fig4.tiff",
+     height = 5,
+     width = 5,
+     units = "in",
+     res = 600,
+     compression = "lzw+p")
+print(p4)
+graphics.off()
+
 p4
 ```
 Compare to risk of 3-year (from the index HF discharge) all-cause mortality after the first HF readmission, not being readmitted or being readmitted for the first time for heart disease, respiratory problems, arrhythmia, diabetes, general symptoms, hypertension, procedures or other reasons decreased the risk. On the other hand, readmission for kidney disease or infections increased the risk.
@@ -3076,16 +3089,6 @@ p4 <- ggplot(out3,
                                "blue",
                                "green")) +
   theme(legend.position = "none")
-
-# Save for publication
-tiff(filename = "tmp/fig4.tiff",
-     height = 5,
-     width = 5,
-     units = "in",
-     res = 600,
-     compression = "lzw+p")
-print(p4)
-graphics.off()
 
 p4
 ```
