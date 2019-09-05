@@ -27,7 +27,8 @@ require(knitr)
 require(gridExtra)
 require(icd)
 require(icd.data)
-require(segmented)   
+require(segmented) 
+require(survival)
 ```
 
 # Data
@@ -209,7 +210,7 @@ datatable(out1) %>%
 # Breakpoint model for number of first HF admissions
 A breakpoint model fitted significantly better to the number of new HF over time data than did a sigle-line fit (ANOVA p-value < 0.001). Adding second breakpoint did not improve the fit (ANOVA p-value = 0.301)
 
-```{r breakpoint}
+```{r breakpoint, fig.height = 5, fig.width = 5}
 m1.1 <- segmented(m1)
 
 # Compare with lm
@@ -246,15 +247,26 @@ out.p <- data.table(bp = round(2000 + m1.1$psi[2], 1),
                                                               df = s1.1$df[2])*s1.1$coefficients[2, 2], 1))
 
 cp <- data.table(Year = 2000:2014,
-                 Fitted = m1.1$fitted.values)
+                 predict(m1.1, 
+                         interval = "predict"))
 
 p1 <- ggplot(t2,
              aes(x = Year,
                  y = Counts)) +
   geom_line(data = cp,
             aes(x = Year,
-                y = Fitted),
+                y = fit),
             size = 1) +
+  geom_line(data = cp,
+            aes(x = Year,
+                y = lwr),
+            size = 1,
+            linetype = "dashed") +
+  geom_line(data = cp,
+            aes(x = Year,
+                y = upr),
+            size = 1,
+            linetype = "dashed") +
   geom_point(size = 3,
              shape = 21,
              fill = "red") +
@@ -262,9 +274,9 @@ p1 <- ggplot(t2,
                      breaks = 2000:2014,
                      limits = c(2000, 2014)) +
   scale_y_continuous("Number of Patients",
-                     breaks = seq(0, 10000, 1000),
-                     limits = c(0, 10000)) +
-  ggtitle(paste("Figure 1: Number of first HF discharges. Total of",
+                     breaks = seq(0, 9000, 1000),
+                     limits = c(0, 9000)) +
+  ggtitle(paste("Figure 1: Number of first HF discharges.\nTotal of",
                 format(nrow(case[DSCYR > 1999 & 
                                    DSCYR < 2015]),
                        big.mark = ","),
@@ -279,7 +291,7 @@ pp1 <- p1 +
   theme(legend.position = "none")
 tiff(filename = "tmp/fig1.tiff",
      height = 5,
-     width = 6,
+     width = 5,
      units = "in",
      res = 600,
      compression = "lzw+p")
@@ -358,7 +370,7 @@ datatable(t1a.apx,
           caption = "Table 3a: all-cause readmissions (%)",
           rownames = FALSE,
           class = "cell-border stripe",
-          options = list(searching = TRUE,
+          options = list(searching = FALSE,
                          pageLength = nrow(t1a.apx)))
 ```
   
@@ -421,7 +433,7 @@ datatable(t1b.apx,
           caption = "Table 3b: HF readmissions (%)",
           rownames = FALSE,
           class = "cell-border stripe",
-          options = list(searching = TRUE,
+          options = list(searching = FALSE,
                          pageLength = nrow(t1b.apx)))
 ```
 
@@ -484,7 +496,7 @@ datatable(t1c.apx,
           caption = "Table 3c: all-cause death (%)",
           rownames = FALSE,
           class = "cell-border stripe",
-          options = list(searching = TRUE,
+          options = list(searching = FALSE,
                          pageLength = nrow(t1c.apx)))
 ```
 
@@ -547,7 +559,7 @@ datatable(t1d.apx,
           caption = "Table 3d: CV death (%)",
           rownames = FALSE,
           class = "cell-border stripe",
-          options = list(searching = TRUE,
+          options = list(searching = FALSE,
                          pageLength = nrow(t1d.apx)))
 ```
 
@@ -685,7 +697,7 @@ datatable(data = out,
           caption = "Table: Linear Trends of 1-Year Outcomes",
           class = "cell-border stripe",
           rownames = FALSE,
-          options = list(searching = TRUE,
+          options = list(searching = FALSE,
                          pageLength = nrow(out))) %>%
   formatRound(columns = c(2, 4),
               digits = 3)
@@ -865,7 +877,7 @@ datatable(table1,
           caption = "Table 2: HF patients' characteristics",
           rownames = FALSE,
           class = "cell-border stripe",
-          options = list(searching = TRUE,
+          options = list(searching = FALSE,
                          pageLength = nrow(table1)))
 ```
 
@@ -953,7 +965,7 @@ for (i in 1:4) {
                             " vs. Demographics"),
             class = "cell-border stripe",
             rownames = FALSE,
-            options = list(searching = TRUE,
+            options = list(searching = FALSE,
                            pageLength = nrow(out))) %>%
     formatRound(columns = 3:5,
                 digits = 3))
@@ -1058,7 +1070,7 @@ datatable(data = t1,
           caption = "Logistic Regression Models of 1-year Outcomes vs. Log2(LOS + 1)",
           class = "cell-border stripe",
           rownames = FALSE,
-          options = list(searching = TRUE,
+          options = list(searching = FALSE,
                          pageLength = nrow(t1))) %>%
   formatRound(columns = 2:4,
               digits = 3)
@@ -1353,7 +1365,7 @@ datatable(data = t1,
           caption = "Logistic regression models of log-days to all-cause readmission vs. 1-year all-cause death",
           class = "cell-border stripe",
           rownames = FALSE,
-          options = list(searching = TRUE,
+          options = list(searching = FALSE,
                          pageLength = nrow(t1))) %>%
   formatRound(columns = 2:4,
               digits = 3)
@@ -2644,9 +2656,9 @@ mm1.3y <- glm(dead3y ~ readm1y,
 ss1 <-summary(mm1.3y)
 
 out1 <- data.table(names = "Readmitted within 1 year",
-                   coef = round(exp(ss1$coefficients[-1, 1]), 3),
-                   lb = round(exp(ss1$coefficients[-1, 1] - 1.96*ss1$coefficients[-1, 2]), 3),
-                   ub = round(exp(ss1$coefficients[-1, 1] + 1.96*ss1$coefficients[-1, 2]), 3),
+                   coef = exp(ss1$coefficients[-1, 1]),
+                   lb = exp(ss1$coefficients[-1, 1] - 1.96*ss1$coefficients[-1, 2]),
+                   ub = exp(ss1$coefficients[-1, 1] + 1.96*ss1$coefficients[-1, 2]),
                    pval = ifelse(ss1$coefficients[-1, 4] >= 0.001,
                                  round(ss1$coefficients[-1, 4], 3),
                                  "<0.001"),
@@ -2654,7 +2666,14 @@ out1 <- data.table(names = "Readmitted within 1 year",
                                  ifelse(ss1$coefficients[-1, 4] <= 0.01,
                                         "**",
                                         "*"), ""))
-datatable(out1)
+datatable(data = out1,
+          caption = "Logistic regression models of 1-year all-cause readmission vs. 3-year all-cause death",
+          class = "cell-border stripe",
+          rownames = FALSE,
+          options = list(searching = FALSE,
+                         pageLength = nrow(t1))) %>%
+  formatRound(columns = 2:4,
+              digits = 3)
 ```
 Risk of death within 3 years from initial HF discharge was significantly higher in patients who were readmitted for any cause within 1 year from the said discharge (OR = 1.66, 95% C.I. = 1.62 to 1.71, p-value < 0.001).
 
@@ -3091,6 +3110,54 @@ p4 <- ggplot(out3,
   theme(legend.position = "none")
 
 p4
+```
+
+```{r surv_3y, fig.height = 5, fig.width = 6}
+case2$days2death3y <- case2$days2death
+case2$days2death3y[case2$days2death3y > 3*365.25 |
+                     is.na(case2$days2death3y)] <- ceiling(3*365.25)
+sf1 <- survfit(Surv(days2death3y, 
+                    dead3y) ~ readm1y,
+               data = case2)
+sf1
+
+# Extract data from the fit 
+dt.surv <- data.table(Time = sf1$time,
+                      HR = sf1$surv,
+                      Group = rep(names(sf1$strata),
+                                  sf1$strata))
+
+# Plot
+p1 <- ggplot(dt.surv,
+             aes(x = Time,
+                 y = HR,
+                 colour = Group,
+                 group = Group)) +
+  geom_step(size = 1) +
+  scale_x_continuous("Years from HF",
+                     breaks = seq(0, 3*365.25, by = 365.25),
+                     labels = seq(0, 3, by = 1)) +
+  scale_y_continuous("Survival",
+                     limits = c(0, 1)) +
+  scale_color_discrete("1-Year Readmission",
+                       breaks = c("readm1y=TRUE",
+                                  "readm1y=FALSE"),
+                       labels = c("Readmitted",
+                                  "No Readmitted")) +
+  ggtitle("") +
+  theme(legend.position = "top")
+
+# Save for publication
+tiff(filename = "tmp/fig11.tiff",
+     height = 5,
+     width = 6,
+     units = "in",
+     res = 600,
+     compression = "lzw+p")
+print(p1)
+graphics.off()
+
+p1
 ```
 
 # Appendix
