@@ -1,0 +1,5 @@
+The number of patients with heart failure declined between 2000 and 2006 and remained unchanged thereafter (p<0.001). 
+
+The rate of readmissions for any cause increased during the study period (p<0.001) while the rate of HF readmissions and mortality remained relatively unchanged. 
+ 
+The number of patients who died within the first 3 years after the first heart failure discharge. The bars represent number of deaths at the end of year 1, between years 1 and 2, and between years 2 and 3. The lines represent the cumulative number of deaths. The proportion of patients who did not survive past the 3rd year was significantly higher among patients who were readmitted within a year after the index discharge compared to those who were not readmitted (p < 0.001).

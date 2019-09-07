@@ -3136,7 +3136,8 @@ p1 <- ggplot(dt.surv,
   geom_step(size = 1) +
   scale_x_continuous("Years from HF",
                      breaks = seq(0, 3*365.25, by = 365.25),
-                     labels = seq(0, 3, by = 1)) +
+                     labels = seq(0, 3, by = 1),
+                     expand = c(0, 0)) +
   scale_y_continuous("Survival",
                      limits = c(0, 1)) +
   scale_color_discrete("1-Year Readmission",
@@ -3159,6 +3160,186 @@ graphics.off()
 
 p1
 ```
+
+```{r surv_barplot, fig.height = 6, fig.width = 5}
+case2$dead2y <- FALSE
+case2$dead2y[case2$days2death < 2*365.25] <- TRUE
+
+dtt <- rbindlist(list(data.table(year = "Year1",
+                          table(readm1y = case2$readm1y,
+                                dead = case2$dead1y)),
+               data.table(year = "Year2",
+                          table(readm1y = case2$readm1y,
+                                dead = case2$dead2y & 
+                                  !case2$dead1y)),
+               data.table(year = "Year3",
+                          table(readm1y = case2$readm1y,
+                                dead = case2$dead3y & 
+                                  !(case2$dead2y | case2$dead1y)))))
+dtt$xx <- paste(dtt$year,
+                dtt$readm1y,
+                sep = "_")
+dtt <- dtt[dead == "TRUE", ]
+dtt[, ycum := cumsum(N),
+    by = readm1y]
+dtt$xcum <- seq(from = 0.5,
+                by = 1,
+                length.out = 6)
+
+
+
+p1 <- ggplot(data = dtt,
+       aes(x = year,
+           y = N,
+           fill = readm1y,
+           group = readm1y)) +
+  geom_bar(stat = "identity",
+           color = "black",
+           position = position_dodge(0.9)) +
+  geom_line(aes(y = ycum,
+                group = readm1y)) +
+  geom_point(aes(y = ycum,
+                 group = readm1y,
+                 fill = readm1y),
+             shape = 21,
+             size = 3) +
+  scale_x_discrete("Time after HF Discharge") +
+  scale_y_continuous("Number of Patients") +
+  scale_fill_discrete("1-Year Readmission:",
+                      breaks = c("FALSE",
+                                 "TRUE"),
+                      labels = c("Not Readmitted",
+                                 "Readmitted")) +
+  theme(legend.position = "bottom")
+
+# Save for publication
+tiff(filename = "tmp/fig12.tiff",
+     height = 6,
+     width = 5,
+     units = "in",
+     res = 600,
+     compression = "lzw+p")
+print(p1)
+graphics.off()
+
+p1
+```
+
+```{r 3ydead_vs_1yearreadm}
+dtt$N_total <- rep(table(case2$readm1y), 3)
+dtt$pct <- dtt$N/dtt$N_total
+datatable(dtt,
+          rownames = FALSE,
+          class = "cell-border stripe",
+          options = list(searching = FALSE,
+                         pageLength = nrow(dtt))) %>%
+  formatCurrency(columns = c(4, 6, 8), 
+                 currency = "",
+                 digits = 0,
+                 mark = ",") %>%
+  formatPercentage(columns = 9,
+                   digits = 2)
+
+t1 <- addmargins(table(readm1y = case2$readm1y, 
+                       dead3y = case2$dead3y))
+
+t2 <- as.matrix(table(readm1y = case2$readm1y, 
+            dead3y = case2$dead3y))
+chisq.test(t2)
+```
+
+To remove the survival curve crossing, we sampled (with replacement) the number of days to readmission from the readmitted subpopulation and assign a number of days to pseudo-readmission in non-readmitted subpopulation. We then removed all non-readmitted patients for whom this pseudo-readmission date was assigned after the date of death.  
+  
+First, we looked at the distribution of number of days to death in each subpopulations:
+```{r pseudo_readm_1, fig.height = 5, fig.width = 10}
+p1 <- ggplot(data = case2[days2death < 366, ] ,
+             aes(x = days2death)) +
+  facet_wrap(~ readm1y,
+             labeller = as_labeller(c("FALSE" = "Not Readmitted",
+                                      "TRUE" = "Readmitted"))) +
+  geom_histogram(fill = "green",
+                 color = "black") +
+  scale_x_continuous("Days form HF to Death") +
+  scale_y_continuous("Number of Patients")
+print(p1)
+```
+
+Next, we assigned pseudo-readmission dates to non-readmitted patients as above:
+```{r pseudo_readm_2, fig.height = 5, fig.width = 10}
+ndays2readm <- case2$days2readm[case2$days2death < 366]
+ndays2readm <- ndays2readm[!is.na(ndays2readm)]
+
+# Randomly assign pseudo-readmission days to non-readmitted patients
+# Use data from the admitted patients
+tmp <- case2[case2$readm1y == FALSE &
+               !is.na(case2$days2death), ]
+tmp$pseudodays <- sample(x = ndays2readm,
+                         size = nrow(tmp),
+                         replace = TRUE)
+
+id.rm <- tmp$Patient_ID[tmp$days2death <= tmp$pseudodays]
+
+case3 <- case2[!Patient_ID %in% id.rm, ]
+p2 <-  ggplot(data = case3[days2death < 366, ] ,
+              aes(x = days2death)) +
+  facet_wrap(~ readm1y,
+             labeller = as_labeller(c("FALSE" = "Not Readmitted",
+                                      "TRUE" = "Readmitted"))) +
+  geom_histogram(fill = "green",
+                 color = "black") +
+  scale_x_continuous("Days form HF to Pseudo-Readmission/Readmission") +
+  scale_y_continuous("Number of Patients")
+print(p2)
+```
+
+Lastly, we redrew survival curves:
+```{r pseudo_readm_3, fig.height = 5, fig.width = 6}
+sf1 <- survfit(Surv(days2death3y, 
+                    dead3y) ~ readm1y,
+               data = case3)
+sf1
+
+# Extract data from the fit 
+dt.surv <- data.table(Time = sf1$time,
+                      HR = sf1$surv,
+                      Group = rep(names(sf1$strata),
+                                  sf1$strata))
+
+# Plot
+p3 <- ggplot(dt.surv,
+             aes(x = Time,
+                 y = HR,
+                 colour = Group,
+                 group = Group)) +
+  geom_step(size = 1) +
+  scale_x_continuous("Years from HF",
+                     breaks = seq(0, 3*365.25, by = 365.25),
+                     labels = seq(0, 3, by = 1),
+                     expand = c(0, 0)) +
+  scale_y_continuous("Survival",
+                     limits = c(0, 1)) +
+  scale_color_discrete("1-Year Readmission",
+                       breaks = c("readm1y=TRUE",
+                                  "readm1y=FALSE"),
+                       labels = c("Readmitted",
+                                  "No Readmitted")) +
+  ggtitle("") +
+  theme(legend.position = "top")
+
+# Save for publication
+tiff(filename = "tmp/fig13.tiff",
+     height = 5,
+     width = 6,
+     units = "in",
+     res = 600,
+     compression = "lzw+p")
+print(p3)
+graphics.off()
+
+p3
+```
+
+The curves still cross but much less and much earlier than in the original graph.
 
 # Appendix
 ## Data Preprocessing
