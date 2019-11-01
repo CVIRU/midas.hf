@@ -3,7 +3,7 @@ title: "Cardiovascular Outcomes in Heart Failure Patients"
 output:
   html_notebook:
     highlight: tango
-    number_sections: no
+    number_sections: yes
     theme: united
     toc: TRUE
     toc_float: TRUE
@@ -16,8 +16,7 @@ Co-Investigator: Michail Giakoumis, Georgia Barbayannis
 Statistician: Davit Sargsyan     
 Date: `r date()`
 
-# Header
-```{r setup,echo = FALSE, message = FALSE, error = FALSE, warning = FALSE}
+```{r setup,include = FALSE}
 # Load packages
 require(data.table)
 require(DT)
@@ -307,6 +306,10 @@ The breakpoint was estimated to be at the year `r out.p$bp` (95% C.I.  = `r out.
 
 ```{r case_2000_2014_only}
 case <- case[DSCYR > 1999 & DSCYR < 2015, ]
+
+# ATTENTION! Save this data for Dhammika's and Javier's Machine Learning paper!
+save(case,
+     file = "data/midas_hf_admitted_2000_2014.RData")
 ```
 
 # Rates of outcomes
