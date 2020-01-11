@@ -1,5 +1,5 @@
 ---
-title: "Cardiovascular Outcomes in Heart Failure Patients"
+title: "Cardiovascular Outcomes in Heart Failure Patients with Existing Hypertension"
 output:
   html_notebook:
     highlight: tango
@@ -84,6 +84,11 @@ case$Teach <- factor(case$Teach,
                      labels = c("Teaching",
                                 "Non-Teaching",
                                 "Unknown"))
+
+# Keep only the hypertensive patients
+case <- droplevels(case[hhyper == TRUE, ])
+case$hhyper <- NULL
+
 rcount.case <- format(nrow(case),
                       big.mark = ",")
 ```
@@ -138,8 +143,8 @@ p0 <- ggplot(t1,
   scale_x_continuous("Number of Patients",
                      breaks = 1995:2015,
                      limits = c(1995, 2015)) +
-  scale_y_continuous(breaks = seq(0, 15000, 1000),
-                     limits = c(0, 15000)) +
+  scale_y_continuous(breaks = seq(0, 4000, 500),
+                     limits = c(0, 4000)) +
   ggtitle(paste("Figure 1: Number of first HF discharges. Total of",
                 rcount.case,
                 "patients, no prior HF.")) +
@@ -160,7 +165,7 @@ p0 <- ggplot(t2,
              aes(x = Year,
                  y = Counts)) +
   geom_smooth(method = "lm") +
-  geom_line(size = 1) +
+  # geom_line(size = 1) +
   geom_point(size = 3,
              shape = 21,
              fill = "red") +
@@ -168,8 +173,8 @@ p0 <- ggplot(t2,
                      breaks = 2000:2014,
                      limits = c(2000, 2014)) +
   scale_y_continuous("Number of Patients",
-                     breaks = seq(0, 10000, 1000),
-                     limits = c(0, 10000)) +
+                     breaks = seq(0, 4000, 1000),
+                     limits = c(0, 4000)) +
   ggtitle(paste("Figure 1: Number of first HF discharges. Total of",
                 format(nrow(case[DSCYR > 1999 & 
                                    DSCYR < 2015]),
@@ -180,6 +185,8 @@ p0 <- ggplot(t2,
         plot.title = element_text(hjust = 0))
 
 print(p0)
+
+
 
 # Linear trend
 t2$years <- t2$Year - 2000
@@ -206,110 +213,8 @@ datatable(out1) %>%
                mark = ",")
 ```
 
-# Breakpoint model for number of first HF admissions
-A breakpoint model fitted significantly better to the number of new HF over time data than did a sigle-line fit (ANOVA p-value < 0.001). Adding second breakpoint did not improve the fit (ANOVA p-value = 0.301)
-
-```{r breakpoint, fig.height = 5, fig.width = 5}
-m1.1 <- segmented(m1)
-
-# Compare with lm
-anova(m1.1, m1)
-# Model 1: Counts ~ years + U1.years + psi1.years
-# Model 2: Counts ~ years
-#   Res.Df     RSS Df Sum of Sq      F    Pr(>F)    
-# 1     11  474536                                  
-# 2     13 2065157 -2  -1590622 18.436 0.0003071 ***
-# IMPROVEMENT OVER LM: keep cahngepoint model
-
-m1.2 <- segmented(m1, npsi = 2)
-anova(m1.2, m1.1)
-# Analysis of Variance Table
-# Model 1: Counts ~ years + U1.years + U2.years + psi1.years + psi2.years
-# Model 2: Counts ~ years + U1.years + psi1.years
-# Res.Df    RSS Df Sum of Sq     F Pr(>F)
-# 1      9 363412                          
-# 2     11 474536 -2   -111124 1.376  0.301
-# NO IMPROVEMENT: keep the single-changepoint model
-
-# Summary of the best model
-m1.1
-s1.1 <- summary(m1.1)
-s1.1
-
-out.p <- data.table(bp = round(2000 + m1.1$psi[2], 1),
-                    bplb = round(2000 + confint(m1.1)[2], 1),
-                    bpub = round(2000 + confint(m1.1)[3], 1),
-                    slope1 = round(s1.1$coefficients[2, 1], 1),
-                    s1lb = round(s1.1$coefficients[2, 1] - qt(p = 0.975,
-                                                              df = s1.1$df[2])*s1.1$coefficients[2, 2], 1),
-                    s1ub = round(s1.1$coefficients[2, 1] + qt(p = 0.975,
-                                                              df = s1.1$df[2])*s1.1$coefficients[2, 2], 1))
-
-cp <- data.table(Year = 2000:2014,
-                 predict(m1.1, 
-                         interval = "predict"))
-
-p1 <- ggplot(t2,
-             aes(x = Year,
-                 y = Counts)) +
-  geom_line(data = cp,
-            aes(x = Year,
-                y = fit),
-            size = 1) +
-  geom_line(data = cp,
-            aes(x = Year,
-                y = lwr),
-            size = 1,
-            linetype = "dashed") +
-  geom_line(data = cp,
-            aes(x = Year,
-                y = upr),
-            size = 1,
-            linetype = "dashed") +
-  geom_point(size = 3,
-             shape = 21,
-             fill = "red") +
-  scale_x_continuous("Discharge Year",
-                     breaks = 2000:2014,
-                     limits = c(2000, 2014)) +
-  scale_y_continuous("Number of Patients",
-                     breaks = seq(0, 9000, 1000),
-                     limits = c(0, 9000)) +
-  ggtitle(paste("Figure 1: Number of first HF discharges.\nTotal of",
-                format(nrow(case[DSCYR > 1999 & 
-                                   DSCYR < 2015]),
-                       big.mark = ","),
-                "patients, no prior HF.")) +
-  theme(axis.text.x = element_text(angle = 45,
-                                   hjust = 1),
-        plot.title = element_text(hjust = 0))
-
-# Save for publication
-pp1 <- p1 +
-  ggtitle("") +
-  theme(legend.position = "none")
-tiff(filename = "tmp/fig1.tiff",
-     height = 5,
-     width = 5,
-     units = "in",
-     res = 600,
-     compression = "lzw+p")
-print(pp1)
-graphics.off()
-
-p1
-```
-
-The breakpoint was estimated to be at the year `r out.p$bp` (95% C.I.  = `r out.p$bplb` to `r out.p$bpub`). The number of new HF patients dicreased significantly between the years 2000 and 2006 by `r -out.p$slope1` patients on average (95% C.I. = `r out.p$s1lb` to `r out.p$s1ub`, p-value < 0.001), and remained almost unchanged from 2007 onward.     
-       
-**NOTE**: Javier suggested using a fixed breakpoint model so no model selection would be needed (i.e. no need to search for the model with the best breakpoint). not implemented in this document (yet!).
-
 ```{r case_2000_2014_only}
 case <- case[DSCYR > 1999 & DSCYR < 2015, ]
-
-# ATTENTION! Save this data for Dhammika's and Javier's Machine Learning paper!
-save(case,
-     file = "data/midas_hf_admitted_2000_2014.RData")
 ```
 
 # Rates of outcomes
@@ -981,7 +886,7 @@ for (i in 1:4) {
 case$los <- as.numeric(difftime(case$DSCHDAT,
                                 case$ADMDAT,
                                 units = "days"))
-sum(case$los == 0)
+print(sum(case$los == 0))
 
 # Distribution of length of stay
 summary(case$los)
@@ -1025,7 +930,7 @@ p3 <- ggplot(case[ , "los"],
 p3
 ```
 
-**NOTE***: 3,433  patients were discharged at the day of admission. This might include transfers to other hospitals but we did not look at transfers.
+**NOTE***: 1,943  patients were discharged at the day of admission. This might include transfers to other hospitals but we did not look at transfers.
 
 ```{r los_glm, warning=FALSE}
 m1a.1y <- glm(readm1y ~ log2(los + 1),
@@ -1234,7 +1139,7 @@ p1 <- ggplot(t1yg,
                      breaks = seq(0, 45000, by = 5000),
                      labels = seq(0, 45, by = 5)) +
   geom_text(aes(x = V1,
-                y = N + 5500,
+                y = N + 3500,
                 angle = 0,
                 label = paste(Percent,
                               "%",
@@ -1318,7 +1223,8 @@ No reduction in 30-day HF readmission rates was observed.
 
 # 1-year mortality vs.  days to readmission within 1 year
 ```{r time_to_readm_glm, warning = FALSE}
-dtreadm <- droplevels(case[!is.na(days2readm), ])
+dtreadm <- droplevels(case[!is.na(days2readm) &
+                             days2readm < 366, ])
 summary(dtreadm$days2readm)
 p1 <- ggplot(dtreadm,
              aes(x = days2readm)) +
@@ -1326,7 +1232,7 @@ p1 <- ggplot(dtreadm,
                  color = "black",
                  fill = "green") +
   scale_x_continuous("Days to All-Cause Readmission",
-                     breaks = seq(0, 6000, by = 1000)) +
+                     breaks = seq(0, 365, by = 30)) +
   scale_y_continuous("Number of Patients") +
   theme(axis.text.x = element_text(angle = 90,
                                    vjust = 0.5,
@@ -1374,7 +1280,7 @@ datatable(data = t1,
               digits = 3)
 ```
 
-This model suggests that a patient readmitted for HF within a given time interval from the index HF discharge date will, on average, have his odds of dying within 1 year (from any cause) reduced by 27.7% (OR = 0.723, 95% C.I. = 0.717 to 0.729, p-value < 0.001). The time intervals are defined by doubling the amount of days from the previous time interval (as a consequence of log2 transformation of the number of days). For example, the odds of 1 year all-cause mortality of a patient readmitted between days 9 and 16 from the index HF discharge (i.e. between [day 2^3^ + 1] and day 2^4^) will be 27.7% less than the odds of a patient readmitted between days 5 and 8 (i. e. between day [2^2^ + 1] and day 2^3^).
+This model suggests that a patient readmitted for HF within a given time interval from the index HF discharge date will, on average, have their odds of dying within 1 year (from any cause) reduced by 18.4% (OR = 0.816, 95% C.I. = 0.805 to 0.827, p-value < 0.001). The time intervals are defined by doubling the amount of days from the previous time interval (as a consequence of log2 transformation of the number of days). For example, the odds of 1 year all-cause mortality of a patient readmitted between days 9 and 16 from the index HF discharge (i.e. between [day 2^3^ + 1] and day 2^4^) will be 18.4% less than the odds of a patient readmitted between days 5 and 8 (i. e. between day [2^2^ + 1] and day 2^3^).
 
 # LOS vs. Days to Readmission
 ```{r los_dtr}
@@ -1415,7 +1321,6 @@ t2.names <- c("Discharge year",
               "CKD",
               "COPD",
               "Diabetes",
-              "Hypertension",
               "Hyperlipidemia",
               "Sleep Apnea",
               "Parkinson",
@@ -1442,7 +1347,6 @@ colnames(tmp) <- c("AFib/AFlutter",
                    "CKD",
                    "COPD",
                    "Diabetes",
-                   "Hypertension",
                    "Hyperlipidemia",
                    "Sleep Apnea",
                    "Parkinson",
@@ -1477,7 +1381,6 @@ m2a.30 <- glm(readm30 ~ DSCYR +
                 hckd +
                 hcopd +
                 hdiab +
-                hhyper +
                 hlipid  +
                 hosa +
                 hpark +
@@ -1502,7 +1405,6 @@ m2a.90 <- glm(readm90 ~ DSCYR +
                 hckd +
                 hcopd +
                 hdiab +
-                hhyper +
                 hlipid  +
                 hosa +
                 hpark +
@@ -1527,7 +1429,6 @@ m2a.180 <- glm(readm180 ~ DSCYR +
                  hckd +
                  hcopd +
                  hdiab +
-                 hhyper +
                  hlipid  +
                  hosa +
                  hpark +
@@ -1552,7 +1453,6 @@ m2a.1y <- glm(readm1y ~ DSCYR +
                 hckd +
                 hcopd +
                 hdiab +
-                hhyper +
                 hlipid  +
                 hosa +
                 hpark +
@@ -1774,7 +1674,6 @@ m2b.30 <- glm(hf30 ~ DSCYR +
                 hckd +
                 hcopd +
                 hdiab +
-                hhyper +
                 hlipid  +
                 hosa +
                 hpark +
@@ -1799,7 +1698,6 @@ m2b.90 <- glm(hf90 ~ DSCYR +
                 hckd +
                 hcopd +
                 hdiab +
-                hhyper +
                 hlipid  +
                 hosa +
                 hpark +
@@ -1824,7 +1722,6 @@ m2b.180 <- glm(hf180 ~ DSCYR +
                  hckd +
                  hcopd +
                  hdiab +
-                 hhyper +
                  hlipid  +
                  hosa +
                  hpark +
@@ -1849,7 +1746,6 @@ m2b.1y <- glm(hf1y ~ DSCYR +
                 hckd +
                 hcopd +
                 hdiab +
-                hhyper +
                 hlipid  +
                 hosa +
                 hpark +
@@ -2070,7 +1966,6 @@ m2c.30 <- glm(dead30 ~ DSCYR +
                 hckd +
                 hcopd +
                 hdiab +
-                hhyper +
                 hlipid  +
                 hosa +
                 hpark +
@@ -2095,7 +1990,6 @@ m2c.90 <- glm(dead90 ~ DSCYR +
                 hckd +
                 hcopd +
                 hdiab +
-                hhyper +
                 hlipid  +
                 hosa +
                 hpark +
@@ -2120,7 +2014,6 @@ m2c.180 <- glm(dead180 ~ DSCYR +
                  hckd +
                  hcopd +
                  hdiab +
-                 hhyper +
                  hlipid  +
                  hosa +
                  hpark +
@@ -2145,7 +2038,6 @@ m2c.1y <- glm(dead1y ~ DSCYR +
                 hckd +
                 hcopd +
                 hdiab +
-                hhyper +
                 hlipid  +
                 hosa +
                 hpark +
@@ -2366,7 +2258,6 @@ m2d.30 <- glm(cvdeath30 ~ DSCYR +
                 hckd +
                 hcopd +
                 hdiab +
-                hhyper +
                 hlipid  +
                 hosa +
                 hpark +
@@ -2391,7 +2282,6 @@ m2d.90 <- glm(cvdeath90 ~ DSCYR +
                 hckd +
                 hcopd +
                 hdiab +
-                hhyper +
                 hlipid  +
                 hosa +
                 hpark +
@@ -2416,7 +2306,6 @@ m2d.180 <- glm(cvdeath180 ~ DSCYR +
                  hckd +
                  hcopd +
                  hdiab +
-                 hhyper +
                  hlipid  +
                  hosa +
                  hpark +
@@ -2441,7 +2330,6 @@ m2d.1y <- glm(cvdeath1y ~ DSCYR +
                 hckd +
                 hcopd +
                 hdiab +
-                hhyper +
                 hlipid  +
                 hosa +
                 hpark +
@@ -2678,7 +2566,7 @@ datatable(data = out1,
   formatRound(columns = 2:4,
               digits = 3)
 ```
-Risk of death within 3 years from initial HF discharge was significantly higher in patients who were readmitted for any cause within 1 year from the said discharge (OR = 1.66, 95% C.I. = 1.62 to 1.71, p-value < 0.001).
+Risk of death within 3 years from initial HF discharge was significantly higher in patients who were readmitted for any cause within 1 year from the said discharge (OR = 1.31, 95% C.I. = 1.26 to 1.36, p-value < 0.001).
 
 ## 3-year all-cause death vs. 1-year readmission, adjusted for all covariates
 ```{r death3y_readm1y_adj, fig.height = 5, fig.width = 15}
@@ -2700,7 +2588,6 @@ mm2.3y <- glm(dead3y ~ readm1y +
                 hckd +
                 hcopd +
                 hdiab +
-                hhyper +
                 hlipid  +
                 hosa +
                 hpark +
@@ -2921,7 +2808,7 @@ p1 <- ggplot(stts,
                                   by = 1)) +
   scale_fill_discrete("Status") +
   geom_text(aes(x = Reason,
-                y = N + 1200,
+                y = N + 800,
                 angle = 0,
                 label = paste(Percent,
                               "%",
