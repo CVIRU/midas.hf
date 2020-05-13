@@ -1,9 +1,14 @@
 1. Regarding Figure 2. Please provide an updated figure clarifying the colored lines which correspond to 1-year, 180-day, 90-day,
    and  30-day follow-up periods respectively (see attached PNG.1)
+DONE
+
 2. On Table 2. Heart failure patients with history of hypertension characteristics – is it possible to expand the table add
    a description of the patient's comorbidities per reviewer's request? 
    Would you be able to provide details with which comorbid conditions you used in the analysis and numbers/percentages for each condition. 
+DONE
+
 3. The mean age of the patients was 74.9 +/- 14.1 years. The reviewer has suggested a sub-analysis or stratification by age. 
    The inclusion criteria included patients 18 and older with history of HTN. The latter makes the distribution skewed, 
    considering that out of 51000 patients only a few would be younger than 40 y.o. The results presumably will be different for those 
    a)younger than 75, b)those between 75-84 and c)85 and older. Please let me know what is the best way to do this. 
+DONE

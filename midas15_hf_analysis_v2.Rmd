@@ -624,8 +624,8 @@ datatable(data = out,
 
 ```{r rates_plot_with_table, fig.height = 8, fig.width = 8}
 p2 <- p1 +
-  ggtitle("") +
-  theme(legend.position = "none")
+  ggtitle("")
+  # theme(legend.position = "none")
 
 out1 <- copy(out)
 
@@ -637,23 +637,23 @@ tbl <- tableGrob(out1,
                  rows = NULL)
 
 tiff(filename = "tmp/fig2.tiff",
-     height = 8,
-     width = 8,
+     height = 7,
+     width = 7,
      units = "in",
      res = 600,
      compression = "lzw+p")
 grid.arrange(p2,
              tbl,
              ncol = 1,
-             heights = c(15, 2, 1))
+             heights = c(13, 2, 1))
 graphics.off()
 ```
 
 # Demographics 
 ```{r demog}
-# Pubication/Table1: Demographics----
+# Pubication/Table2: Demographics----
 # summary(case)
-table1 <- data.table(Description = c("Mean Age at First HF Admission +/- S.D",
+table2 <- data.table(Description = c("Mean Age at First HF Admission +/- S.D",
                                      "Male (%)",
                                      "Race (%)",
                                      "* White",
@@ -787,18 +787,79 @@ table1 <- data.table(Description = c("Mean Age at First HF Admission +/- S.D",
                                                   1),
                                             ""))
 
-# Save Table1 as CSV
-write.csv(table1,
+# Save Table2 as CSV
+write.csv(table2,
           file = "tmp/table2.csv",
           row.names = FALSE)
 
-datatable(table1,
+datatable(table2,
           caption = "Table 2: HF patients' characteristics",
           rownames = FALSE,
           class = "cell-border stripe",
           options = list(searching = FALSE,
-                         pageLength = nrow(table1)))
+                         pageLength = nrow(table2)))
 ```
+
+
+# Comorbidities
+```{r table2comorb}
+table2comorb <- data.table(Description = c("Prior AF",
+                                           "Prior AMI",
+                                           "History of Anemia",
+                                           "History of Kidney Disease",
+                                           "History of COPD",
+                                           "History of Diabetes",
+                                           "History of Hyperlipidemia",
+                                           "History of OSA",
+                                           "Parkinson",
+                                           "Prior Stroke",
+                                           "Prior TIA"),
+                           `Number of Patients` = c(format(sum(case$haf),
+                                                           big.mark = ","),
+                                                    format(sum(case$hami),
+                                                           big.mark = ","),
+                                                    format(sum(case$hanemia),
+                                                           big.mark = ","),
+                                                    format(sum(case$hckd),
+                                                           big.mark = ","),
+                                                    format(sum(case$hcopd),
+                                                           big.mark = ","),
+                                                    format(sum(case$hdiab),
+                                                           big.mark = ","),
+                                                    format(sum(case$hlipid),
+                                                           big.mark = ","),
+                                                    format(sum(case$hosa),
+                                                           big.mark = ","),
+                                                    format(sum(case$hpark),
+                                                           big.mark = ","),
+                                                    format(sum(case$hstroke),
+                                                           big.mark = ","),
+                                                    format(sum(case$htia),
+                                                           big.mark = ",")),
+                           `Percent Patients` = c(round(100*sum(case$haf)/nrow(case), 1),
+                                                  round(100*sum(case$hami)/nrow(case), 1),
+                                                  round(100*sum(case$hanemia)/nrow(case), 1),
+                                                  round(100*sum(case$hckd)/nrow(case), 1),
+                                                  round(100*sum(case$hcopd)/nrow(case), 1),
+                                                  round(100*sum(case$hdiab)/nrow(case), 1),
+                                                  round(100*sum(case$hlipid)/nrow(case), 1),
+                                                  round(100*sum(case$hosa)/nrow(case), 1),
+                                                  round(100*sum(case$hpark)/nrow(case), 1),
+                                                  round(100*sum(case$hstroke)/nrow(case), 1),
+                                                  round(100*sum(case$htia)/nrow(case), 1)))
+# Save Table2comorb as CSV
+write.csv(table2comorb,
+          file = "tmp/table2comorb.csv",
+          row.names = FALSE)
+
+datatable(table2comorb,
+          caption = "Table 2 Comorb: HF patients' comorbidities",
+          rownames = FALSE,
+          class = "cell-border stripe",
+          options = list(searching = FALSE,
+                         pageLength = nrow(table2comorb)))
+```
+
 
 ```{r outcomes_1y}
 case$readm1y <- case$hf1y <- case$dead1y <- case$cvdeath1y <- FALSE
@@ -890,6 +951,76 @@ for (i in 1:4) {
                 digits = 3))
 }
 ```
+
+# Subanalysis: anudjusted analysis by age groups
+```{r age_grp}
+case$age_grp <- "<75"
+case$age_grp[case$AGE >= 75] <- "75 to 84"
+case$age_grp[case$AGE >= 85] <- ">=85"
+case$age_grp <- factor(case$age_grp,
+                       levels = c("<75",
+                                  "75 to 84",
+                                  ">=85"))
+
+m1a1.1y <- glm(readm1y ~ age_grp,
+               family = binomial(logit),
+               data = case)
+
+m1b1.1y <- glm(hf1y ~ age_grp,
+               family = binomial(logit),
+               data = case)
+
+m1c1.1y <- glm(dead1y ~ age_grp,
+               family = binomial(logit),
+               data = case)
+
+m1d1.1y <- glm(cvdeath1y ~ age_grp,
+               family = binomial(logit),
+               data = case)
+
+s11 <- list(summary(m1a1.1y),
+            summary(m1b1.1y),
+            summary(m1c1.1y),
+            summary(m1d1.1y))
+
+outcomes <- c("All-Cause Readmission",
+              "HF Readmission",
+              "All-Cause Death",
+              "CV Death")
+
+t1 <- list()
+for (i in 1:4) {
+  a <- s11[[i]]
+  t1[[i]] <- data.table(Outcome = outcomes[i],
+                        Row = rownames(a$coefficients)[-1],
+                        OR = exp(a$coefficients[-1, 1]),
+                        `95% C.I.L.B.` = exp(a$coefficients[-1, 1] - 1.96*a$coefficients[-1, 2]),
+                        `95% C.I.U.B.` = exp(a$coefficients[-1, 1] + 1.96*a$coefficients[-1, 2]),
+                        `p-Value` = ifelse(a$coefficients[-1, 4] >= 0.001,
+                                           round(a$coefficients[-1, 4], 3),
+                                           "<0.001"),
+                        sign = ifelse(a$coefficients[-1, 4] <= 0.05,
+                                      ifelse(a$coefficients[-1, 4] <= 0.01,
+                                             "**",
+                                             "*"), ""))
+}
+
+out <- rbindlist(t1)
+
+write.csv(out,
+          file = "tmp/outcomes_by_age_grp.csv")
+
+print(datatable(data = out,
+                caption = "Table: Subanalysis: Outcomes by Age Group",
+                class = "cell-border stripe",
+                rownames = FALSE,
+                options = list(searching = FALSE,
+                               pageLength = nrow(out))) %>%
+        formatRound(columns = 3:5,
+                    digits = 3))
+```
+
+
 
 # Length of stay
 ```{r los, warning=FALSE}
